@@ -28,18 +28,18 @@
 (in-package :data-format-validation)
 
 (define-condition invalid-input(condition)
-  ((value :reader value
+  ((value :reader invalid-input-value
           :initarg :value
           :documentation "The value input"
           :initform nil)
-   (reason :reader reason
+   (reason :reader invalid-input-reason
            :initarg :reason
            :documentation "Textual description of reason value is invalid."
            :initform nil))
   (:report (lambda (condition stream)
              (format stream "Invalid input: ~S ~@[[Reason: ~A]~]"
-                     (value condition)
-                     (reason condition)))))
+                     (invalid-input-value condition)
+                     (invalid-input-reason condition)))))
 
 (defmacro invalid-input (value &rest reason)
   "Generate an invalid-input error for given value using reason"

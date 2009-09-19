@@ -34,11 +34,13 @@
   (:use :cl :cl-ppcre)
   (:export
    ;; main generic interface and condition
-   #:parse-input #:format-output #:invalid-input #:use-default
+   #:parse-input #:format-output
+   #:invalid-input #:invalid-input-value #:invalid-input-reason
    ;; new use data types -  ang and date are also formatter functions
    #:date #:filename #:eng #:time-period #:pathnames #:separated #:roman
    ;; functions for doing aggregates of user data and condition
    #:parse-options #:parse-arguments #:unknown-option #:too-many-arguments
    #:ignore-extra-arguments
+   #:use-default
    ;; some other more generally useful helper library functions
    #:split-string #:join-strings))
