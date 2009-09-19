@@ -1,5 +1,3 @@
-(in-package :user-data)
-
 ;;; **********************************************************************
 ;;; This code was written as part of the CMU Common Lisp project at
 ;;; Carnegie Mellon University, and has been placed in the public domain.
@@ -17,6 +15,8 @@
 ;;; Written by Jim Healy, June 1987.
 
 ;;; **********************************************************************
+
+(in-package :data-format-validation)
 
 (defvar whitespace-chars '(#\space #\tab #\newline #\, #\' #\`))
 (defvar time-dividers '(#\: #\.))

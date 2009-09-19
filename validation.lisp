@@ -1,24 +1,31 @@
-;;;; $Id: validation.lisp,v 1.21 2007/11/06 08:16:22 willijar Exp $
-;;;; User input data parsing and output formatting
-;;;; Copyright (C) 2005-2006 Dr. John A.R. Williams
-;;;;
-;;;; This program is free software; you can redistribute it and/or modify
-;;;; it under the terms of the GNU General Public License as published by
-;;;; the Free Software Foundation; either version 2 of the License, or (at
-;;;; your option) any later version.
-;;;;
-;;;; This program is distributed in the hope that it will be useful, but
-;;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;;;; General Public License for more details.
-;;;;
-;;;; You should have received a copy of the GNU General Public License
-;;;; along with this program; if not, write to the Free Software
-;;;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-;;;; 02110-1301, USA.
-;;;;
+;; API definition and implementation for numerous data types.
+;; Copyright (C) 2009 Dr. John A.R. Williams
 
-(in-package :user-data)
+;; Author: Dr. John A.R. Williams <J.A.R.Williams@jarw.org.uk>
+
+;;; Copying:
+
+;; This file is part of the DATA-FORMAT-VALIDATION Common Lisp library
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; DATA-FORMAT-VALIDATION is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;;
+
+;;; Code:
+(in-package :data-format-validation)
 
 (define-condition invalid-input(condition)
   ((value :reader value
@@ -128,12 +135,16 @@ containing the whole rest of the given `string', if any."
   "Return a new string by joining together the STRINGS,
 separating each string with a SEPARATOR character or string"
   (with-output-to-string(os)
-    (write-string (first strings) os)
-    (dolist(s (rest strings))
-      (if (characterp separator)
-          (write-char separator os)
-          (write-sequence separator os))
-      (write-string s os))))
+    (let ((firstp t))
+      (map 'nil
+           #'(lambda(string)
+               (if firstp
+                   (setf firstp nil)
+                   (if (characterp separator)
+                       (write-char separator os)
+                       (write-sequence separator os)))
+               (write-string string os))
+           strings))))
 
 (defmethod parse-input((spec list) input &rest rest)
   "Dispatch a list spec to appropriate method"
@@ -539,13 +550,10 @@ finsihed, returning a list of values."
 (defmethod format-output((spec (eql 'member)) output &key type)
   (format-output type output))
 
-(defmethod format-output((spec string) output &key &allow-other-keys)
-  (format nil spec output))
-
 (defmethod parse-input((spec (eql 'time-period)) (value string)
                        &key &allow-other-keys)
   "A time period in hours, minutes and (optionally) seconds"
-  (let* ((values  (split-sequence #\: value :count 3))
+  (let* ((values  (split-string value :delimiter #\: :count 3))
          (hours (parse-input 'integer (first values) :min 0))
          (minutes (parse-input 'integer (second values) :min 0 :max 59))
          (seconds (if (third values)

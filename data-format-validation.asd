@@ -1,4 +1,5 @@
-;; Package definition
+;;;; -*- lisp -*-
+;; System definition
 ;; Copyright (C) 2009 Dr. John A.R. Williams
 
 ;; Author: Dr. John A.R. Williams <J.A.R.Williams@jarw.org.uk>
@@ -26,19 +27,17 @@
 
 ;;; Code:
 
-(in-package :cl-user)
-
-(defpackage :data-format-validation
-  (:documentation "Exports API for validation and conversion of user
-  data to internal types and back again.")
-  (:use :cl :cl-ppcre)
-  (:export
-   ;; main generic interface and condition
-   #:parse-input #:format-output #:invalid-input #:use-default
-   ;; new use data types -  ang and date are also formatter functions
-   #:date #:filename #:eng #:time-period #:pathnames #:separated #:roman
-   ;; functions for doing aggregates of user data and condition
-   #:parse-options #:parse-arguments #:unknown-option #:too-many-arguments
-   #:ignore-extra-arguments
-   ;; some other more generally useful helper library functions
-   #:split-string #:join-strings))
+(in-package :asdf)
+(defsystem "data-format-validation"
+    :name "Data Format Validation"
+    :description "Validation and conversion between user and internal data."
+    :author "Dr. John A.R. Williams"
+    :version "0.1"
+    :maintainer "Dr. John A.R. Williams"
+    :licence "GPL v3"
+    :depends-on (:cl-ppcre)
+    :components
+    ((:file "defpackage")
+     (:file "validation" :depends-on ("defpackage" "parse-number" "parse-time"))
+     (:file "parse-time" :depends-on ("defpackage"))
+     (:file "parse-number" :depends-on ("defpackage"))))

@@ -34,7 +34,7 @@
 ;;;; SUCH DAMAGE.
 
 ;
-(in-package :user-data)
+(in-package :data-format-validation)
 
 (define-condition invalid-number ()
   ((value :reader value
