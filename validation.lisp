@@ -308,7 +308,12 @@ in length. Each member of list is validated against type"
                  input
                  :count max-length :delimiter separator :remove-empty-subseqs t)))
   (let ((value
-         (if (listp type)
+         (if (and (listp type)
+                  (or (listp (first type))
+                      (not
+                      (and (symbolp (second type))
+                           (eql (symbol-package (second type))
+                                #.(find-package :keyword))))))
              (mapcar #'(lambda(type v) (parse-input type v))
                      type input)
              (mapcar #'(lambda(v) (parse-input type v)) input ))))
@@ -542,7 +547,12 @@ finsihed, returning a list of values."
 
 (defmethod format-output((spec (eql 'list)) output &key type (separator ", "))
   (join-strings
-   (if (listp type)
+   (if (and (listp type)
+                  (or (listp (first type))
+                      (not
+                      (and (symbolp (second type))
+                           (eql (symbol-package (second type))
+                                #.(find-package :keyword))))))
        (mapcar #'(lambda(type v) (format-output type v)) type output)
        (mapcar #'(lambda(v) (format-output type v)) output))
    separator))
@@ -725,7 +735,7 @@ only the suffix is output. If nil no units or suffix is output"
              (let ((p (position c +engineering-units+)))
                (unless p
                     (error 'invalid-input :value value
-                           :reason "Invalid enginnering unit"))
+                           :reason "Invalid engineering unit"))
                (* num (expt  10 (* 3 (- 8 p)))))))
 
     (cond
