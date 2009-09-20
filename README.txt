@@ -25,14 +25,14 @@ Download and Installation
 =========================
 
 |DFV| together with this documentation can be downloaded from
-<http://www.jarw.org/lisp/cl-data-format-validation.tar.gz>. The
+<http://www.jarw.org.uk/lisp/cl-data-format-validation.tar.gz>. The
 current version is 0.1.
 
-|DFV| comes with a system definition for ``ASDF
-<http://www.cliki.net/asdf>`` and is compiled and loaded in the usual
-way. It depends upon ``<CL-PPCRE http://weitz.de/cl-ppcre>``. A git
+|DFV| comes with a system definition for 
+`ASDF <http://www.cliki.net/asdf>`_ and is compiled and loaded in the usual
+way. It depends upon `CL-PPCRE <http://weitz.de/cl-ppcre/>`_. A git
 repository is available at
-<http://www.jarw.org/lisp/cl-data-format-validation.git>.
+<http://www.jarw.org.uk/lisp/cl-data-format-validation.git>.
 
 Support
 =======
