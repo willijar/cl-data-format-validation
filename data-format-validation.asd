@@ -32,7 +32,7 @@
     :name "Data Format Validation"
     :description "Validation and conversion between user and internal data."
     :author "Dr. John A.R. Williams"
-    :version "0.1"
+    :version "0.1.1"
     :maintainer "Dr. John A.R. Williams"
     :licence "GPL v3"
     :depends-on (:cl-ppcre)
