@@ -27,19 +27,25 @@
 ;;; Code:
 (in-package :data-format-validation)
 
-(define-condition invalid-input(condition)
-  ((value :reader invalid-input-value
+(define-condition bad-format(condition)
+    ((value :reader bad-format-value
           :initarg :value
           :documentation "The value input"
           :initform nil)
-   (reason :reader invalid-input-reason
+     (reason :reader bad-format-reason
            :initarg :reason
            :documentation "Textual description of reason value is invalid."
            :initform nil))
   (:report (lambda (condition stream)
-             (format stream "Invalid input: ~S ~@[[Reason: ~A]~]"
-                     (invalid-input-value condition)
-                     (invalid-input-reason condition)))))
+             (format stream "~A: ~S ~@[[Reason: ~A]~]"
+                     (class-name condition)
+                     (bad-format-value condition)
+                     (bad-format-reason condition)))))
+
+(define-condition invalid-input(bad-format)
+  ())
+
+(define-condition invalid-output(bad-format)())
 
 (defmacro invalid-input (value &rest reason)
   "Generate an invalid-input error for given value using reason"
@@ -577,10 +583,17 @@ finsihed, returning a list of values."
     (multiple-value-bind(minutes seconds) (floor value 60.0)
       (format nil "~2,'0D:~2,'0D:~2,'0D" hours minutes  (round seconds)))))
 
-(define-condition unknown-option(condition)
+(define-condition unknown-option(bad-format)
   ((option :reader option :initarg :option))
   (:report (lambda (condition stream)
              (format stream "Unknown option ~A" (option condition)))))
+
+(defun lookup-field(name field-specifications)
+  (etypecase field-specifications
+    (function (funcall field-specifications name))
+    (list (let ((v (find name field-specifications
+                         :key #'first :test #'string-equal)))
+            (values (second v) (third v) v)))))
 
 (defun parse-options(spec options-list &optional allow-other-options)
   "Parse an option list (alist of names and strings to be parsed)
@@ -619,7 +632,94 @@ unless allow-other-options is true"
                             default)))))
           spec))
 
-(define-condition too-many-arguments(invalid-input)())
+(defmethod parse-input((spec (eql 'headers)) is
+                       &key (skip-blanks-p t)
+                       field-specifications
+                       (preserve-newlines-p t)
+                       (termination-test #'(lambda(line) (zerop (length line))))
+                       if-no-specification &allow-other-keys)
+  (when (stringp is)
+    (return-from parse-input
+      (with-input-from-string(s is)
+        (parse-input 'header s
+                     :field-specifications field-specifications
+                     :skip-blanks-p skip-blanks-p
+                     :preserve-newlines-p preserve-newlines-p
+                     :if-no-specification if-no-specification))))
+  (let ((name nil)
+        (value nil)
+        (headers nil))
+    (flet((finish-header()
+            (when name
+              (multiple-value-bind(type default found-p)
+                  (lookup-field name field-specifications)
+                (when (and (eql  if-no-specification :error)
+                             (not found-p))
+                  (error 'invalid-input :value name :reason "Unknown field"))
+                (push
+                 (cons name
+                       (if found-p
+                           (parse-input
+                            type
+                            (join-strings
+                             (nreverse value)
+                             (if preserve-newlines-p #\newline #\space)))
+                           default))
+                 headers))
+              (setf name nil))))
+      (do ((line (read-line is nil nil) (read-line is nil nil)))
+          ((and (funcall termination-test line)
+                (or (not skip-blanks-p) headers))
+           (finish-header)
+           headers)
+        (if (white-space-p (char line 0))
+            (if name
+                (push line value)
+                (error 'invalid-input
+                          :value line
+                          :reason "Unexpected Continuation line"))
+            (progn
+              (when name (finish-header))
+              (let ((args (split-string line :delimiter #\: :count 2)))
+                (when (< (length args) 2)
+                  (error 'invalid-input
+                           :value line
+                           :reason "Invalid header line"))
+                (setf name (first args))
+                (setf value (rest args)))))))))
+
+(defmethod format-output((spec (eql 'headers)) (headers list)
+                         &key field-specifications
+                         if-no-specification
+                         stream
+                         (preserve-newlines-p t))
+  (unless stream
+    (return-from format-output
+      (with-output-to-string(os)
+        (format-output 'header headers
+                       :stream os
+                       :field-specifications field-specifications
+                       :preserve-newlines-p preserve-newlines-p
+                       :if-no-specification if-no-specification))))
+  (dolist(header headers)
+    (let ((name (first header))
+          (value (rest header)))
+      (multiple-value-bind(type default found-p)
+          (lookup-field name field-specifications)
+        (declare (ignore default))
+        (when (and (eql  if-no-specification :error)
+                   (not found-p))
+          (error 'invalid-output :value name :reason "Unknown field"))
+        (write-string name stream)
+        (write-char #\: stream)
+        (let ((lines (split-string (format-output type value)
+                                   :delimiter #\newline)))
+          (write-line (first lines) stream)
+          (dolist(line (rest lines))
+            (write-char #\space stream)
+            (write-line line stream)))))))
+
+(define-condition too-many-arguments(bad-format)())
 
 (defun parse-arguments(spec argument-string &optional allow-spaces)
   "Parse a string of whitespace delimited arguments according to spec.
