@@ -607,7 +607,9 @@ unless allow-other-options is true"
           (unless (find (car option) spec
                         :test #'string-equal
                         :key (lambda(s) (if (listp s) (first s) s)))
-            (cerror "Ignore Option" 'invalid-format :type spec :value option :reason "Unknwon option"))))
+            (cerror "Ignore Option" 'invalid-format
+                    :type 'parse-options :value option
+                    :reason "Unknwon option"))))
   (mapcar #'(lambda(s)
               (multiple-value-bind(name type default)
                   (if (listp s) (values-list s) s)
@@ -741,7 +743,7 @@ If allow-spaces is true, last element can contain spaces"
         (when p
             (restart-case
                 (error 'invalid-format
-                       :type spec
+                       :type 'parse-arguments
                        :value a
                        :reason "Too many arguments in argument list")
               (ignore-extra-arguments()

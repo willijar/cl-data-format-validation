@@ -40,8 +40,6 @@
    #:date #:filename #:eng #:time-period #:pathnames #:separated #:roman
    #:headers
    ;; functions for doing aggregates of user data and condition
-   #:parse-options #:parse-arguments #:unknown-option #:too-many-arguments
-   #:ignore-extra-arguments
-   #:use-default
+   #:parse-options #:parse-arguments #:ignore-extra-arguments #:use-default
    ;; some other more generally useful helper library functions
    #:split-string #:join-strings))
