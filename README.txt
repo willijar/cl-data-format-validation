@@ -8,7 +8,7 @@ DATA FORMAT VALIDATION
 :Contact:      J.A.R.Williams@jarw.org.uk
 :date:         2009/09/20
 :status:       Initial Public Release
-:version:      0.1.1
+:version:      0.2.0
 :copyright:    © 2009 J.A.R. Williams
 :abstract:     DATA-FORMAT-VALIDATION is a library for Common Lisp providing a
      consistent regular interface for converting (and validating) external data
@@ -25,7 +25,7 @@ Download and Installation
 
 |DFV| together with this documentation can be downloaded from
 <http://www.jarw.org.uk/lisp/cl-data-format-validation.tar.gz>. The
-current release version is 0.1.1
+current release version is 0.2.0
 
 |DFV| comes with a system definition for 
 `ASDF <http://www.cliki.net/asdf>`_ and is compiled and loaded in the usual
@@ -257,9 +257,9 @@ Methods specialisations are provided for the following types:
 Conditions and Restarts
 =======================
 
-**invalid-input** 
+**invalid-format** 
   is signalled if the input doesn't meet the type specification. It has
-  readers `invalid-input-value` and `invalid-input-reason`.
+  readers `invalid-format-value` and `invalid-format-reason`.
 
 **use-value** 
   restart may be invoked to specify a result to be used if

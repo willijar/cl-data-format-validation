@@ -1,4 +1,4 @@
-;; API definition and implementation for numerous data types.
+;; API definition and implementation of data validation for numerous data types.
 ;; Copyright (C) 2009 Dr. John A.R. Williams
 
 ;; Author: Dr. John A.R. Williams <J.A.R.Williams@jarw.org.uk>
@@ -27,31 +27,31 @@
 ;;; Code:
 (in-package :data-format-validation)
 
-(define-condition bad-format(condition)
-    ((value :reader bad-format-value
+(define-condition invalid-format(condition)
+  ((type :reader invalid-format-type
+         :initarg :type
+         :documentation "The type specification"
+         :initform nil)
+   (value :reader invalid-format-value
           :initarg :value
           :documentation "The value input"
           :initform nil)
-     (reason :reader bad-format-reason
+   (reason :reader invalid-format-reason
            :initarg :reason
            :documentation "Textual description of reason value is invalid."
            :initform nil))
   (:report (lambda (condition stream)
-             (format stream "~A: ~S ~@[[Reason: ~A]~]"
-                     (class-name condition)
-                     (bad-format-value condition)
-                     (bad-format-reason condition)))))
+             (format stream "Error parsing ~S~@[ as ~A~]: ~@[[~A]~]"
+                     (invalid-format-value condition)
+                     (invalid-format-type condition)
+                     (invalid-format-reason condition)))))
 
-(define-condition invalid-input(bad-format)
-  ())
-
-(define-condition invalid-output(bad-format)())
-
-(defmacro invalid-input (value &rest reason)
-  "Generate an invalid-input error for given value using reason"
-  `(error 'invalid-input
-	  :value ,value
-	  :reason (format nil ,@reason)))
+(defmacro invalid-format-error (type value &rest reason)
+  "Generate an invalid-format error for given value using reason"
+  `(error 'invalid-format
+          :type ,type
+          :value ,value
+          :reason (format nil ,@reason)))
 
 (defgeneric format-output(specification value &key &allow-other-keys)
   (:documentation "Return a string representation of value formatted
@@ -66,7 +66,7 @@ list are passed as keyword arguments to the specific method e.g.
 
 (defgeneric parse-input(specification input &key &allow-other-keys)
   (:documentation "Validate and parse user input according to
-specification, returning the validated object. Throws an invalid-input
+specification, returning the validated object. Throws an invalid-format
 condition if input is invalid.  If specification is a list the first
 element specifies the actual validation method and the rest of the
 list are passed as keyword arguments to the specific method e.g.
@@ -74,7 +74,7 @@ list are passed as keyword arguments to the specific method e.g.
    (parse-input '(integer :min 0) input)
 
 will return the integer value from strin if it is >0, or signal and
-invalid-input error if not.
+invalid-format condition if not.
 
    (parse-input '(member :type integer :set (1 5 7)) input)
 
@@ -82,7 +82,7 @@ will return it only if it has a value in the set.
 
 The use-value restart may be used to provide substitute value if the
 input is invalid.")
-  (:method :around (specification input &rest args)
+  (:method :around ((specification symbol) input &rest args)
     (restart-case
       (call-next-method)
     (use-value(result)
@@ -91,7 +91,8 @@ input is invalid.")
                         specification))
       :interactive (lambda()
                      (format t "Enter new value and press return: ")
-                     (apply #'parse-input `(specification ,(read-line) ,@args)))
+                     (apply #'parse-input
+                            `(,specification ,(read-line) ,@args)))
       result))))
 
 (defun is-nil-string(string)
@@ -174,7 +175,8 @@ separating each string with a SEPARATOR character or string"
      t)
     ((member input '("NO" "N" "FALSE" "NIL" "F" "0") :test #'equalp)
      nil)
-    (t (invalid-input input "Boolean Value must be TRUE or FALSE"))))
+    (t (invalid-format-error
+        spec input "Boolean Value must be TRUE or FALSE"))))
 
 (defmethod format-output((spec (eql 'boolean)) input
                          &key &allow-other-keys)
@@ -183,43 +185,42 @@ separating each string with a SEPARATOR character or string"
 (defmethod parse-input((spec (eql 'integer)) (input string)
                        &key min max nil-allowed (radix 10))
   (unless (and nil-allowed (is-nil-string input))
-    (handler-case
-        (let ((v (parse-integer input :radix radix)))
-          (when (and max (> v max))
-            (invalid-input input
-                           "The integer must be less than or equal to ~D" max))
-          (when (and min (< v min))
-            (invalid-input input
-                           "The integer must be more than or equal to ~D" min))
-          v)
-      (error ()
-        (invalid-input
-         input
-         "Character sequence must form a valname integer, specified as an
-optional sign (+ or -) followed by a a non-empty sequence of digits")))))
+    (let ((v
+           (handler-case
+               (parse-integer input :radix radix)
+             (error ()
+               (invalid-format-error spec input "Character sequence must form a valid integer, specified as an optional sign (+ or -) followed by a a non-empty sequence of digits")))))
+      (when (and max (> v max))
+        (invalid-format-error
+         spec input "The integer must be less than or equal to ~D" max))
+      (when (and min (< v min))
+        (invalid-format-error
+         spec input
+         "The integer must be more than or equal to ~D" min))
+      v)))
 
 (defmethod parse-input((spec (eql 'number)) (input string)
                        &key min max nil-allowed format (radix 10))
   "Real, integer or rational numbers"
   (declare (ignore format))
   (unless (and nil-allowed (is-nil-string input))
-    (handler-case
-        (let ((v (parse-number input :radix radix)))
-          (when (and max (> v max))
-            (invalid-input input
-                           "The number must be less than or equal to ~D" max))
-          (when (and min (< v min))
-            (invalid-input input
-                           "The number must be more than or equal to ~D" min))
-          v)
-      (error ()
-        (invalid-input
-         input "The character sequence must form a valname number")))))
+    (let ((v (handler-case
+                 (parse-number input :radix radix)
+               (error ()
+                 (invalid-format-error
+                  spec input "The character sequence mustform a valid number")))))
+      (when (and max (> v max))
+        (invalid-format-error
+         spec input "The number must be less than or equal to ~D" max))
+      (when (and min (< v min))
+        (invalid-format-error
+         spec input "The number must be more than or equal to ~D" min))
+      v)))
 
 (defmethod parse-input((spec (eql 'string)) s
                        &key
                        (strip-return nil)
-                       nil-allowed  word-count max-word-count
+                       nil-allowed  min-word-count max-word-count
                        (min-length 0) max-length)
   (when (not s)
     (if nil-allowed
@@ -234,19 +235,21 @@ optional sign (+ or -) followed by a a non-empty sequence of digits")))))
   (let* ((s (string-trim +ws+ s)))
     (unless (and nil-allowed (is-nil-string s))
       (when (< (length s) min-length)
-        (invalid-input s "The value must be at least ~D characters long."
-                       min-length))
+        (invalid-format-error
+         spec s "The value must be at least ~D characters long." min-length))
       (when (and max-length (> (length s) max-length))
-        (invalid-input s "The value must be at most ~D characters long."
-                       max-length))
-      (when (or word-count max-word-count)
+        (invalid-format-error
+         spec s "The value must be at most ~D characters long." max-length))
+      (when (or min-word-count max-word-count)
         (let((no-words (length  (split-string s :remove-empty-subseqs t))))
-          (when (and word-count (< no-words word-count))
-            (invalid-input s "You must provide a value of at least ~D words."
-                           word-count))
+          (when (and min-word-count (< no-words min-word-count))
+            (invalid-format-error
+             spec s
+             "You must provide a value of at least ~D words." min-word-count))
           (when (and max-word-count (> no-words max-word-count))
-            (invalid-input s "You must provide a value of at most ~D words."
-                           word-count))))
+            (invalid-format-error
+             spec s
+             "You must provide a value of at most ~D words." max-word-count))))
       s)))
 
 (defmethod parse-input((spec (eql 'symbol)) (input string)
@@ -258,7 +261,7 @@ optional sign (+ or -) followed by a a non-empty sequence of digits")))))
                        &key type set (test #'equal) key)
   (let ((value (parse-input type input)))
     (unless (member value set :test test :key key)
-      (invalid-input input "The input must be one of ~A" set))
+      (invalid-format-error spec input "The input must be one of ~A" set))
     value))
 
 (defmethod parse-input ((spec (eql 'pathname)) (input string)
@@ -268,12 +271,12 @@ optional sign (+ or -) followed by a a non-empty sequence of digits")))))
     (if wild-allowed
         pathname
         (if (wild-pathname-p pathname)
-            (invalid-input input "Pathname ~S is wild." pathname)
+            (invalid-format-error spec input "Pathname ~S is wild." pathname)
             (if must-exist
                 (if (probe-file pathname)
                     pathname
-                    (invalid-input input "File at ~S does not exist"
-                                   pathname))
+                    (invalid-format-error
+                     spec input "File at ~S does not exist" pathname))
                 pathname))))))
 
 (defmethod parse-input ((spec (eql 'pathnames)) (input string)
@@ -296,9 +299,8 @@ May return an error or replace invalid characters."
         (:replace (cl-ppcre:scan "([^\\/]+)$" value)))
     (declare (ignore end))
     (unless (and start (> (aref reg-end 0) (aref reg-start 0)))
-      (invalid-input
-       value
-       "Contains characters forbidden for a filename."))
+      (invalid-format-error
+       spec value "Contains characters forbidden for a filename."))
     (let ((fname (subseq value (aref reg-start 0) (aref reg-end 0))))
       (if (eql if-invalid :error)
           fname
@@ -324,22 +326,24 @@ in length. Each member of list is validated against type"
                      type input)
              (mapcar #'(lambda(v) (parse-input type v)) input ))))
     (cond ((and min-length (< (length value) min-length))
-           (invalid-input input
-                          "The input must be at least ~D long" min-length))
+           (invalid-format-error
+            spec input "The input must be at least ~D long" min-length))
           ((and max-length (> (length value) max-length))
-           (invalid-input input
-                          "The input must be less than ~D long" max-length))
+           (invalid-format-error
+            spec input "The input must be less than ~D long" max-length))
           (value))))
 
 (defmethod parse-input((spec (eql 'date)) (input string)
                        &key nil-allowed (zone 0))
   (if (is-nil-string input)
       (unless nil-allowed
-        (invalid-input input "The Date/Time field cannot be empty."))
+        (invalid-format-error
+         spec input "The Date/Time field cannot be empty."))
       (handler-case
           (parse-time input :error-on-mismatch t :default-zone zone)
         (error ()
-          (invalid-input input "Not a recognized date/time format.
+          (invalid-format-error
+           spec input "Not a recognized date/time format.
 Try the ISO format YYYY/MM/DD HH:MM:SS")))))
 
 (defparameter +month-names+
@@ -413,12 +417,13 @@ value(s) must be of this type"
                        (read is)
                      (end-of-file(e) (error e))
                      (error(e)
-                       (invalid-input
+                       (invalid-format-error spec
                         value
                         (with-output-to-string(os)
                           (write e :stream os :readably nil :escape nil)))))))
               (unless (typep v type)
-                (invalid-input value "~S is not of type ~S" v type))
+                (invalid-format-error
+                 spec value "~S is not of expected type ~S" v type))
               v)))
       (if multiplep
           (let ((results nil))
@@ -583,11 +588,6 @@ finsihed, returning a list of values."
     (multiple-value-bind(minutes seconds) (floor value 60.0)
       (format nil "~2,'0D:~2,'0D:~2,'0D" hours minutes  (round seconds)))))
 
-(define-condition unknown-option(bad-format)
-  ((option :reader option :initarg :option))
-  (:report (lambda (condition stream)
-             (format stream "Unknown option ~A" (option condition)))))
-
 (defun lookup-field(name field-specifications)
   (etypecase field-specifications
     (function (funcall field-specifications name))
@@ -607,7 +607,7 @@ unless allow-other-options is true"
           (unless (find (car option) spec
                         :test #'string-equal
                         :key (lambda(s) (if (listp s) (first s) s)))
-            (cerror "Ignore Option" 'unknown-option :option option))))
+            (cerror "Ignore Option" 'invalid-format :type spec :value option :reason "Unknwon option"))))
   (mapcar #'(lambda(s)
               (multiple-value-bind(name type default)
                   (if (listp s) (values-list s) s)
@@ -641,7 +641,7 @@ unless allow-other-options is true"
   (when (stringp is)
     (return-from parse-input
       (with-input-from-string(s is)
-        (parse-input 'header s
+        (parse-input 'headers s
                      :field-specifications field-specifications
                      :skip-blanks-p skip-blanks-p
                      :preserve-newlines-p preserve-newlines-p
@@ -653,73 +653,78 @@ unless allow-other-options is true"
             (when name
               (multiple-value-bind(type default found-p)
                   (lookup-field name field-specifications)
-                (when (and (eql  if-no-specification :error)
-                             (not found-p))
-                  (error 'invalid-input :value name :reason "Unknown field"))
-                (push
-                 (cons name
-                       (if found-p
-                           (parse-input
-                            type
-                            (join-strings
-                             (nreverse value)
-                             (if preserve-newlines-p #\newline #\space)))
-                           default))
-                 headers))
-              (setf name nil))))
-      (do ((line (read-line is nil nil) (read-line is nil nil)))
-          ((and (funcall termination-test line)
-                (or (not skip-blanks-p) headers))
-           (finish-header)
-           headers)
-        (if (white-space-p (char line 0))
-            (if name
-                (push line value)
-                (error 'invalid-input
-                          :value line
-                          :reason "Unexpected Continuation line"))
-            (progn
-              (when name (finish-header))
-              (let ((args (split-string line :delimiter #\: :count 2)))
-                (when (< (length args) 2)
-                  (error 'invalid-input
-                           :value line
-                           :reason "Invalid header line"))
-                (setf name (first args))
-                (setf value (rest args)))))))))
+                (declare (ignore default))
+                (when (and (eql if-no-specification :error)
+                           (not found-p))
+                  (invalid-format-error spec name "Unknown field"))
+                (let ((value
+                       (join-strings
+                        (nreverse value)
+                        (if preserve-newlines-p #\newline #\space))))
+                  (push
+                   (cons name (if found-p (parse-input type value) value ))
+                   headers))
+                (setf name nil)))))
+      (restart-case
+          (do ((line (read-line is nil nil) (read-line is nil nil)))
+              ((and (funcall termination-test line)
+                    (or (not skip-blanks-p) headers))
+               (finish-header)
+               headers)
+            (restart-case
+                (if (white-space-p (char line 0))
+                    (if name
+                        (push line value)
+                        (invalid-format-error
+                         spec line "Unexpected Continuation line"))
+                    (progn
+                      (when name (finish-header))
+                      (let ((args (split-string line :delimiter #\: :count 2)))
+                        (when (< (length args) 2)
+                          (invalid-format-error
+                           spec line "Missing field delimiter"))
+                        (setf name (string-right-trim '(#\space) (first args))
+                              value
+                              (list (string-left-trim '(#\space) (second args)))))))
+              (continue() :report "Skip this line and continue.")))
+        (stop() :report "Stop and return headers read so far." headers)
+        (skip-headers()
+          :report "Skip to end of headers and return headers read so far."
+          (do ((line (read-line is nil nil) (read-line is nil nil)))
+              ((funcall termination-test line)))
+          headers)))))
 
 (defmethod format-output((spec (eql 'headers)) (headers list)
                          &key field-specifications
                          if-no-specification
                          stream
                          (preserve-newlines-p t))
-  (unless stream
-    (return-from format-output
+  (if stream
+      (dolist(header headers)
+        (let ((name (first header))
+              (value (rest header)))
+          (multiple-value-bind(type default found-p)
+              (lookup-field name field-specifications)
+            (declare (ignore default))
+            (when (and (eql  if-no-specification :error)
+                       (not found-p))
+              (invalid-format-error spec name "Unknown field"))
+            (write-string name stream)
+            (write-string ": " stream)
+            (let ((lines (split-string
+                          (if found-p (format-output type value) value)
+                          :delimiter #\newline)))
+              (write-line (first lines) stream)
+              (dolist(line (rest lines))
+                (write-char #\space stream)
+                (write-line line stream))))))
       (with-output-to-string(os)
-        (format-output 'header headers
+        (format-output 'headers headers
                        :stream os
                        :field-specifications field-specifications
                        :preserve-newlines-p preserve-newlines-p
                        :if-no-specification if-no-specification))))
-  (dolist(header headers)
-    (let ((name (first header))
-          (value (rest header)))
-      (multiple-value-bind(type default found-p)
-          (lookup-field name field-specifications)
-        (declare (ignore default))
-        (when (and (eql  if-no-specification :error)
-                   (not found-p))
-          (error 'invalid-output :value name :reason "Unknown field"))
-        (write-string name stream)
-        (write-char #\: stream)
-        (let ((lines (split-string (format-output type value)
-                                   :delimiter #\newline)))
-          (write-line (first lines) stream)
-          (dolist(line (rest lines))
-            (write-char #\space stream)
-            (write-line line stream)))))))
 
-(define-condition too-many-arguments(bad-format)())
 
 (defun parse-arguments(spec argument-string &optional allow-spaces)
   "Parse a string of whitespace delimited arguments according to spec.
@@ -735,7 +740,8 @@ If allow-spaces is true, last element can contain spaces"
              (p (position #\space a)))
         (when p
             (restart-case
-                (error 'too-many-arguments
+                (error 'invalid-format
+                       :type spec
                        :value a
                        :reason "Too many arguments in argument list")
               (ignore-extra-arguments()
@@ -834,15 +840,15 @@ only the suffix is output. If nil no units or suffix is output"
     (flet ((scaled-num(c)
              (let ((p (position c +engineering-units+)))
                (unless p
-                    (error 'invalid-input :value value
-                           :reason "Invalid engineering unit"))
+                    (invalid-format-error
+                     spec value "Invalid engineering unit"))
                (* num (expt  10 (* 3 (- 8 p)))))))
 
     (cond
       ((and
         (stringp units)
         (let ((p (search units suffix)))
-          (unless p (error 'invalid-input :value value :reason "Invalid units"))
+          (unless p (invalid-format-error spec value "Invalid units"))
           (when (> p 0)
             (let ((c (char suffix (1- p))))
               (unless (white-space-p c)
@@ -862,8 +868,8 @@ only the suffix is output. If nil no units or suffix is output"
                          &key  &allow-other-keys)
   "convert integer to Roman numeral"
   (unless (< 0 n 4000)
-    (error 'invalid-input :value n
-           :reason "number out of range (must be 1..3999)"))
+    (invalid-format-error
+     spec n "number out of range (must be 1..3999)"))
   (with-output-to-string(os)
     (dolist(item +roman-numeral-map+)
       (let ((numeral (car item))
@@ -871,7 +877,7 @@ only the suffix is output. If nil no units or suffix is output"
         (loop
          (when (< n int) (return))
          (write-sequence numeral os)
-         (decf n int))))))
+           (decf n int))))))
 
 (defmethod parse-input((spec (eql 'roman)) (s string)
                        &key &allow-other-keys)
@@ -891,6 +897,6 @@ only the suffix is output. If nil no units or suffix is output"
            (incf result int)
            (incf index len)))))
     (when (< index slen)
-      (error 'invalid-input :value s :reason "Invalid Roman numeral" ))
+      (invalid-format-error spec  s "Invalid Roman numeral" ))
     result))
 

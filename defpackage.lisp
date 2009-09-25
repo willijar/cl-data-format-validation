@@ -34,8 +34,8 @@
   (:use :cl :cl-ppcre)
   (:export
    ;; main generic interface and condition
-   #:parse-input #:format-output #:invalid-input
-   #:bad-format #:bad-format-value #:bad-format-reason
+   #:parse-input #:format-output #:invalid-format
+   #:invalid-format-type #:invalid-format-value #:invalid-format-reason
    ;; new use data types -  ang and date are also formatter functions
    #:date #:filename #:eng #:time-period #:pathnames #:separated #:roman
    #:headers
