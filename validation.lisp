@@ -634,7 +634,7 @@ unless allow-other-options is true"
     (function (funcall field-specifications name))
     (list (let ((v (find name field-specifications
                          :key #'first :test #'string-equal)))
-            (values (second v) v)))))
+            (values (second v) (when v t))))))
 
 (defmethod parse-input((spec (eql 'headers)) (s string) &rest rest)
   (with-input-from-string(is s)
@@ -657,23 +657,25 @@ unless allow-other-options is true"
             (when name
               (multiple-value-bind(type found-p)
                   (lookup-field name field-specifications)
-                (when (and (eql if-no-specification :error)
-                           (not found-p))
-                  (invalid-format-error spec name "Unknown field"))
-                (let ((value
-                       (join-strings
-                        (nreverse value)
-                        (if preserve-newlines-p #\newline))))
-                  (push
-                   (cons name
-                         (parse-input
-                          (if found-p type if-no-specification) value))
-                   headers))
-                (setf name nil)))))
+                (when (not found-p)
+                  (case if-no-specification
+                    (:error
+                     (invalid-format-error spec name "Unknown field"))
+                    (:ignore (setf name nil value nil)
+                             (return-from finish-header))))
+                (push
+                 (cons name
+                       (parse-input
+                        (if found-p type if-no-specification)
+                        (join-strings
+                         (nreverse value)
+                         (if preserve-newlines-p #\newline))))
+                 headers))
+              (setf name nil))))
       (restart-case
           (do ((line (read-line is nil nil) (read-line is nil nil)))
               ((and (funcall termination-test line)
-                    (or (not skip-blanks-p) headers))
+                    (or (not skip-blanks-p) name))
                (finish-header)
                headers)
             (restart-case
@@ -710,24 +712,27 @@ unless allow-other-options is true"
               (value (rest header)))
           (multiple-value-bind(type found-p)
               (lookup-field name field-specifications)
-            (when (and (eql  if-no-specification :error)
-                       (not found-p))
-              (invalid-format-error spec name "Unknown field"))
-            (write-string name stream)
-            (write-string ": " stream)
-            (let ((lines (split-string
-                          (if found-p (format-output type value) value)
-                          :delimiter #\newline)))
-              (write-line (first lines) stream)
-              (dolist(line (rest lines))
-                (write-char #\space stream)
-                (write-line line stream))))))
-      (with-output-to-string(os)
-        (format-output 'headers headers
-                       :stream os
-                       :field-specifications field-specifications
-                       :preserve-newlines-p preserve-newlines-p
-                       :if-no-specification if-no-specification))))
+            (when (or found-p
+                      (case if-no-specification
+                        (:error
+                         (invalid-format-error spec name "Unknown field"))
+                        (:ignore nil)
+                        (t t)))
+              (write-string name stream)
+              (write-string ": " stream)
+              (let ((lines (split-string
+                            (if found-p (format-output type value) value)
+                            :delimiter #\newline)))
+                (write-line (first lines) stream)
+                (dolist(line (rest lines))
+                  (write-char #\space stream)
+                  (write-line line stream)))))))
+        (with-output-to-string(os)
+          (format-output 'headers headers
+                         :stream os
+                         :field-specifications field-specifications
+                         :preserve-newlines-p preserve-newlines-p
+                         :if-no-specification if-no-specification))))
 
 
 (defun parse-arguments(spec argument-string &optional allow-spaces)

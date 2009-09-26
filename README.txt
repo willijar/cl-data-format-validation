@@ -8,7 +8,7 @@ DATA FORMAT VALIDATION
 :Contact:      J.A.R.Williams@jarw.org.uk
 :date:         2009/09/20
 :status:       Initial Public Release
-:version:      0.2.0
+:version:      0.2
 :copyright:    © 2009 J.A.R. Williams
 :abstract:     DATA-FORMAT-VALIDATION is a library for Common Lisp providing a
      consistent regular interface for converting (and validating) external data
@@ -25,7 +25,7 @@ Download and Installation
 
 |DFV| together with this documentation can be downloaded from
 <http://www.jarw.org.uk/lisp/cl-data-format-validation.tar.gz>. The
-current release version is 0.2.0
+current release version is 0.2
 
 |DFV| comes with a system definition for 
 `ASDF <http://www.cliki.net/asdf>`_ and is compiled and loaded in the usual
@@ -230,9 +230,9 @@ Methods specialisations are provided for the following types:
   `test`(default is equal allowing for string tests).
 
 **date** `&key nil-allowed zone fmt`
-  Uses the `parse-time`library of Jim Healy and Daniel
+  Uses the `parse-time` library of Jim Healy and Daniel
   Barlow to convert to internal universal time in specified zone.
-  `fmt`is a keyword specifying the output format to be used as
+  `fmt` is a keyword specifying the output format to be used as
   follows. A stand alone formatter of the same name is also provided.
   
   :RFC2822   - output as per RFC2822 for internet messages
@@ -265,8 +265,9 @@ Methods specialisations are provided for the following types:
   which returns the parse type specification and a `present-p` values
   in the usual way. `if-no-specification` specifies either a type
   specification to be used if the field is not found in
-  `field-specifications` or `:error` for this case to be flagged as an
-  error. If defaults to `nil` i.e. value is passed through as a string
+  `field-specifications`, `:error` for this case to be flagged as an
+  error or `:ignore` to ignore fields without specifications.
+  If defaults to `nil` i.e. value is passed through as a string
   without parsing.
 
   `skip-blanks-p` will allow the parser to skip leading blank lines on
