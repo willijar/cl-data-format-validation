@@ -141,17 +141,18 @@ containing the whole rest of the given `string', if any."
 (defun join-strings(strings  &optional (separator #\space))
   "Return a new string by joining together the STRINGS,
 separating each string with a SEPARATOR character or string"
-  (with-output-to-string(os)
-    (let ((firstp t))
-      (map 'nil
-           #'(lambda(string)
-               (if firstp
-                   (setf firstp nil)
-                   (if (characterp separator)
-                       (write-char separator os)
-                       (write-sequence separator os)))
-               (write-string string os))
-           strings))))
+  (let ((writer (etypecase separator
+                  (character #'write-char)
+                  (sequence #'write-sequence))))
+    (with-output-to-string(os)
+      (let ((firstp t))
+        (map 'nil
+             #'(lambda(string)
+                 (if firstp
+                     (setf firstp nil)
+                     (funcall writer separator os))
+                 (write-string string os))
+             strings)))))
 
 (defmethod parse-input((spec list) input &rest rest)
   "Dispatch a list spec to appropriate method"
@@ -189,7 +190,7 @@ separating each string with a SEPARATOR character or string"
            (handler-case
                (parse-integer input :radix radix)
              (error ()
-               (invalid-format-error spec input "Character sequence must form a valid integer, specified as an optional sign (+ or -) followed by a a non-empty sequence of digits")))))
+               (invalid-format-error spec input "Character sequence must form a valid integer")))))
       (when (and max (> v max))
         (invalid-format-error
          spec input "The integer must be less than or equal to ~D" max))
@@ -208,7 +209,7 @@ separating each string with a SEPARATOR character or string"
                  (parse-number input :radix radix)
                (error ()
                  (invalid-format-error
-                  spec input "The character sequence mustform a valid number")))))
+                  spec input "The character sequence must form a valid number")))))
       (when (and max (> v max))
         (invalid-format-error
          spec input "The number must be less than or equal to ~D" max))
@@ -368,14 +369,14 @@ Modifiers:
 - os: an output stream designator
 - arg: a universal time
 - colon-p: a generalised boolean (default false).
-             If true use month and day names in date
+           If true use month and day names in date
 - at-p: a generalised boolean (default false) - if true print in yyyy-mm-dd
           (sortable) format rather than dd-mm-yyy
 - precision: what precision to print it to. 6 is to the second,
              7 includes timezone, a negative number counts backward.
 - timezone: an integer (default nil).
             If nil no timezone used and time is in current timezone
-              adjusted for daylight saving time.
+            adjusted for daylight saving time.
 
 Result:
 
@@ -588,12 +589,6 @@ finsihed, returning a list of values."
     (multiple-value-bind(minutes seconds) (floor value 60.0)
       (format nil "~2,'0D:~2,'0D:~2,'0D" hours minutes  (round seconds)))))
 
-(defun lookup-field(name field-specifications)
-  (etypecase field-specifications
-    (function (funcall field-specifications name))
-    (list (let ((v (find name field-specifications
-                         :key #'first :test #'string-equal)))
-            (values (second v) (third v) v)))))
 
 (defun parse-options(spec options-list &optional allow-other-options)
   "Parse an option list (alist of names and strings to be parsed)
@@ -634,37 +629,45 @@ unless allow-other-options is true"
                             default)))))
           spec))
 
-(defmethod parse-input((spec (eql 'headers)) is
+(defun lookup-field(name field-specifications)
+  (etypecase field-specifications
+    (function (funcall field-specifications name))
+    (list (let ((v (find name field-specifications
+                         :key #'first :test #'string-equal)))
+            (values (second v) v)))))
+
+(defmethod parse-input((spec (eql 'headers)) (s string) &rest rest)
+  (with-input-from-string(is s)
+    (apply #'parse-input `(headers ,is ,@rest))))
+
+(defmethod parse-input((spec (eql 'headers)) (p pathname) &rest rest)
+  (with-open-file(is p :direction :input :if-does-not-exist :error)
+    (apply #'parse-input `(headers ,is ,@rest))))
+
+(defmethod parse-input((spec (eql 'headers)) (is stream)
                        &key (skip-blanks-p t)
                        field-specifications
                        (preserve-newlines-p t)
                        (termination-test #'(lambda(line) (zerop (length line))))
                        if-no-specification &allow-other-keys)
-  (when (stringp is)
-    (return-from parse-input
-      (with-input-from-string(s is)
-        (parse-input 'headers s
-                     :field-specifications field-specifications
-                     :skip-blanks-p skip-blanks-p
-                     :preserve-newlines-p preserve-newlines-p
-                     :if-no-specification if-no-specification))))
   (let ((name nil)
         (value nil)
         (headers nil))
     (flet((finish-header()
             (when name
-              (multiple-value-bind(type default found-p)
+              (multiple-value-bind(type found-p)
                   (lookup-field name field-specifications)
-                (declare (ignore default))
                 (when (and (eql if-no-specification :error)
                            (not found-p))
                   (invalid-format-error spec name "Unknown field"))
                 (let ((value
                        (join-strings
                         (nreverse value)
-                        (if preserve-newlines-p #\newline #\space))))
+                        (if preserve-newlines-p #\newline))))
                   (push
-                   (cons name (if found-p (parse-input type value) value ))
+                   (cons name
+                         (parse-input
+                          (if found-p type if-no-specification) value))
                    headers))
                 (setf name nil)))))
       (restart-case
@@ -676,7 +679,7 @@ unless allow-other-options is true"
             (restart-case
                 (if (white-space-p (char line 0))
                     (if name
-                        (push line value)
+                        (push (subseq line 1) value)
                         (invalid-format-error
                          spec line "Unexpected Continuation line"))
                     (progn
@@ -705,9 +708,8 @@ unless allow-other-options is true"
       (dolist(header headers)
         (let ((name (first header))
               (value (rest header)))
-          (multiple-value-bind(type default found-p)
+          (multiple-value-bind(type found-p)
               (lookup-field name field-specifications)
-            (declare (ignore default))
             (when (and (eql  if-no-specification :error)
                        (not found-p))
               (invalid-format-error spec name "Unknown field"))

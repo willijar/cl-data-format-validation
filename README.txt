@@ -186,10 +186,10 @@ Methods specialisations are provided for the following types:
 **roman**
   Convert between roman numerals (up to 4000) and an integer
 
-**string** `&key strip-return nil-allowed word-count max-word-count min-length max-length`
+**string** `&key strip-return nil-allowed min-word-count max-word-count min-length max-length`
   Validates that the string is between `min-length` and `max-length`
   characters long (inclusive, and if specified) and the word count is
-  between `word-count` and `max-word-count`. 
+  between `min-word-count` and `max-word-count`. 
   Whitespace is trimmed from the returned string, and if
   `strip-return` is specified the RETURN characters are stripped from
   the string (useful when handling input from http forms).
@@ -253,6 +253,32 @@ Methods specialisations are provided for the following types:
   A time period in hours, minutes and (optionally) seconds is
   converted into an integer number of seconds. ':' is used as the
   delimiter between fields.
+
+**headers** `&key stream skip-blanks-p field-specifications
+  preserve-newlines-p termination-test if-no-specification`
+  Parse or format internet message style headers. `parse-input` takes
+  either a string or stream as the input value. 
+
+  `field-specifications`
+  is either an a-list by field name of giving the parse type
+  specification to be applied recursively for that field or a function
+  which returns the parse type specification and a `present-p` values
+  in the usual way. `if-no-specification` specifies either a type
+  specification to be used if the field is not found in
+  `field-specifications` or `:error` for this case to be flagged as an
+  error. If defaults to `nil` i.e. value is passed through as a string
+  without parsing.
+
+  `skip-blanks-p` will allow the parser to skip leading blank lines on
+  the input. `termination-test` is a test function which of one
+  argument (a string - a line) which should return true if the
+  argument terminates the headers - default tests for a zero length
+  line. If `preserve-newlines-p` is true then continuation lines will
+  keep their newline characters, otherwise the newlines and first
+  continuation character are removed.
+
+  `format-output` will write its output to `stream` if it is given,
+  otherwise it will return a string containing the output headers.   
 
 Conditions and Restarts
 =======================
