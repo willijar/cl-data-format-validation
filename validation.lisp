@@ -718,10 +718,13 @@ unless allow-other-options is true"
                          (invalid-format-error spec name "Unknown field"))
                         (:ignore nil)
                         (t t)))
-              (write-string name stream)
+              (write name stream)
               (write-string ": " stream)
               (let ((lines (split-string
-                            (if found-p (format-output type value) value)
+                            (cond
+                              (found-p (format-output type value))
+                              ((stringp value) value)
+                              (t (write-to-string value)))
                             :delimiter #\newline)))
                 (write-line (first lines) stream)
                 (dolist(line (rest lines))
