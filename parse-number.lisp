@@ -111,7 +111,7 @@
            (error 'invalid-number
                   :value (subseq string start end)
                   :reason reason)))
-    (let ((end (or end (length string))))
+    (let ((end (or end (1+ (position-if-not #'white-space-p string :from-end t)))))
       (if (and (eql (char string start) #\#)
                (member (char string (1+ start)) '(#\C #\c)))
           (let ((\(-pos (position #\( string :start start :end end))
@@ -151,7 +151,7 @@
 
 (defun parse-real-number (string &key (start 0) (end nil) (radix 10))
   "Given a string, and start, end, and radix parameters, produce a number according to the syntax definitions in the Common Lisp Hyperspec -- except for complex numbers."
-  (let ((end (or end (length string))))
+  (let ((end (or end (1+ (position-if-not #'white-space-p string :from-end t)))))
     (case (char string start)
       ((#\-)
        (* -1 (parse-positive-real-number string
