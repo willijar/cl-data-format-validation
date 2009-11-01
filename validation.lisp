@@ -180,8 +180,12 @@ separating each string with a SEPARATOR character or string"
         spec input "Boolean Value must be TRUE or FALSE"))))
 
 (defmethod format-output((spec (eql 'boolean)) input
-                         &key &allow-other-keys)
-  (if input "TRUE" "FALSE"))
+                         &key fmt  &allow-other-keys)
+  (case fmt
+    (:yn (if input "Yes" "No"))
+    (:tf (if input "T" "F"))
+    (1 (if input 1 0))
+    (otherwise (if input "TRUE" "FALSE"))))
 
 (defmethod parse-input((spec (eql 'integer)) (input string)
                        &key min max nil-allowed (radix 10))
