@@ -542,9 +542,10 @@ FMT is a keyword symbol specifying which output format is used as follows
         output)
     if-nil))
 
-(defmethod format-output((spec (eql 'number)) output &key format
+(defmethod format-output((spec (eql 'number)) output &key radix format
                          &allow-other-keys)
-  (if format (format nil format output) (call-next-method)))
+  (let ((*print-base* radix))
+    (if format (format nil format output) (call-next-method))))
 
 (defmethod format-output((spec (eql 'integer)) output &key format
                          &allow-other-keys)
