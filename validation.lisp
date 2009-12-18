@@ -95,6 +95,8 @@ input is invalid.")
                             `(,specification ,(read-line) ,@args)))
       result))))
 
+
+
 (defun is-nil-string(string)
   (or (= 0 (length string))
       (string-equal string "NIL")
@@ -937,3 +939,46 @@ only the suffix is output. If nil no units or suffix is output"
       (setf (char result i) (if (= (bit input i) 1) #\1 #\0)))
     result))
 
+(defgeneric equivalent(specification input reference &key &allow-other-keys)
+  (:documentation "Returns true if the parsed value input is
+equivalent (equals) the reference value according to the stype
+specification. If specification is a list the first element specifies
+the actual validation method and the rest of the list are passed as
+keyword arguments to the specific method.")
+  (:method((spec list) input reference &rest rest)
+    (declare (ignore rest))
+    (apply #'equivalent (nconc (list (car spec) input) (cdr spec))))
+  (:method(spec input reference &key (test #'equal)  &allow-other-keys)
+    (funcall test input reference))
+  (:method((spec (eql 'number)) input reference &key (tol 1e-3 tolp) &allow-other-keys)
+    (and input
+         (or (= input reference)
+             (when tolp
+               (and (/= 0 reference)
+                    (< (abs (/ (- input reference) reference)) tol)))))))
+
+(defmethod format-output((spec (eql 'dimensional-parameter)) value
+                        &key (padchar #\space) (decimal-places 2)
+                         &allow-other-keys)
+  "Output in engineering style with units. If units is a string then
+the output will contain that unit and the appropriate suffix. If t
+only the suffix is output. If nil no units or suffix is output"
+  (with-output-to-string(os)
+    (eng os (car value)  (cdr value) nil decimal-places padchar)
+    (write-string (cdr value) os)))
+
+(defmethod parse-input((spec (eql 'dimensional-parameter)) (value string)
+                       &key &allow-other-keys)
+  ;; we assume all of suffix non numerical characters make up units
+  ;; and value before that is a number.
+  (let* ((p (1+ (position-if #'digit-char-p value :from-end t)))
+         (num (float (parse-number (subseq value 0 p))))
+         (p (position-if-not #'white-space-p value :start p))
+         (scale (position (char value p) +engineering-units+))
+         (units (subseq value (if scale (1+ p) p))))
+    (when scale (setf num (* num (expt  10 (* 3 (- 8 scale))))))
+    (cons num units)))
+
+(defmethod equivalent((spec (eql 'dimensional-parameter)) input reference &rest rest)
+  (and (equal (cdr reference) (cdr input))
+       (apply #'equivalent `(number ,(car input) ,(car reference) ,@rest))))
