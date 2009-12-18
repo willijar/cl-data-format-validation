@@ -544,7 +544,7 @@ FMT is a keyword symbol specifying which output format is used as follows
 
 (defmethod format-output((spec (eql 'number)) output &key radix format
                          &allow-other-keys)
-  (let ((*print-base* radix))
+  (let ((*print-base* (or radix *print-base*)))
     (if format (format nil format output) (call-next-method))))
 
 (defmethod format-output((spec (eql 'integer)) output &key format
@@ -915,5 +915,25 @@ only the suffix is output. If nil no units or suffix is output"
            (incf index len)))))
     (when (< index slen)
       (invalid-format-error spec  s "Invalid Roman numeral" ))
+    result))
+
+(defmethod parse-input((spec (eql 'bit-vector)) (input string)
+                        &key &allow-other-keys)
+  (let* ((s (string-left-trim " " (string-right-trim " " input)))
+         (len (length s))
+         (result (make-array len :element-type 'bit)))
+    (dotimes(i len)
+      (case (char s i)
+        (#\0 (setf (bit result i) 0))
+        (#\1 (setf (bit result i) 1))
+        (t (invalid-format-error spec s "Invalid character '~C' in bit vector" (char s i)))))
+    result))
+
+(defmethod format-output ((spec (eql 'bit-vector)) (input bit-vector)
+                         &key &allow-other-keys)
+  (let* ((len (length input))
+        (result (make-string len)))
+    (dotimes(i len)
+      (setf (char result i) (if (= (bit input i) 1) #\1 #\0)))
     result))
 
