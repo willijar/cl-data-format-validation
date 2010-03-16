@@ -207,7 +207,8 @@ separating each string with a SEPARATOR character or string"
       v)))
 
 (defmethod parse-input((spec (eql 'number)) (input string)
-                       &key min max nil-allowed format (radix 10))
+                       &key min max nil-allowed format (radix 10)
+                       (rational-as-float-p nil))
   "Real, integer or rational numbers"
   (declare (ignore format))
   (unless (and nil-allowed (is-nil-string input))
@@ -222,7 +223,7 @@ separating each string with a SEPARATOR character or string"
       (when (and min (< v min))
         (invalid-format-error
          spec input "The number must be more than or equal to ~D" min))
-      v)))
+      (if rational-as-float-p (coerce v 'float) v))))
 
 (defmethod parse-input((spec (eql 'string)) s
                        &key
