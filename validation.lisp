@@ -409,7 +409,7 @@ Examples:
        (when (or (> precision 3) (< precision 0))
          (format os "~2,'0d:~2,'0d" ho mi)
          (when (or (> precision 5) (< precision -2)) (format os ":~2,'0d" se)))
-       (when (and (>= precision 7) timezone)
+       (when  timezone
          (format os " ~:[+~;-~]~2,'0d" (< 0 tz) (abs tz))))))
 
 (defmethod parse-input((spec (eql 'read)) (value string) &key (multiplep nil)
@@ -517,12 +517,12 @@ FMT is a keyword symbol specifying which output format is used as follows
           "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
           ye mo da ho mi se timezone (< 0 tz) (abs tz)))
         (:short
-         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d"
-                 ye mo da ho mi))
+         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
+                 ye mo da ho mi timezone (< 0 tz) (abs tz)))
         (:rfc2822
          (format
           out
-          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~@d~]"
+          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
           week-day-name da month-name ye ho mi se timezone (< 0 tz) (abs tz)))
         (:http
          (format out "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d GMT"
@@ -726,7 +726,7 @@ unless allow-other-options is true"
                          (invalid-format-error spec name "Unknown field"))
                         (:ignore nil)
                         (t t)))
-              (write name stream)
+              (write name :stream stream)
               (write-string ": " stream)
               (let ((lines (split-string
                             (cond
