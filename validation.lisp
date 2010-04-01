@@ -342,13 +342,13 @@ in length. Each member of list is validated against type"
           (value))))
 
 (defmethod parse-input((spec (eql 'date)) (input string)
-                       &key nil-allowed (zone 0))
+                       &key nil-allowed (zone nil) (patterns *default-date-time-patterns*))
   (if (is-nil-string input)
       (unless nil-allowed
         (invalid-format-error
          spec input "The Date/Time field cannot be empty."))
       (handler-case
-          (parse-time input :error-on-mismatch t :default-zone zone)
+          (parse-time input :patterns patterns :error-on-mismatch t :default-zone zone)
         (error ()
           (invalid-format-error
            spec input "Not a recognized date/time format.
@@ -368,7 +368,7 @@ Try the ISO format YYYY/MM/DD HH:MM:SS")))))
   "The string representations of the time zones.")
 
 (defun date(os utime &optional colon-p at-p
-            (precision 6) (timezone nil))
+            (precision 7) (timezone nil))
   "Formatter which formats a universal time for output as a date and time
 
 Modifiers:
@@ -393,7 +393,7 @@ Examples:
 
  (format nil \"~/date/\" (get-universal-time)) => \"19-03-2009 08:30\""
    (multiple-value-bind (se mi ho da mo ye dw dst tz)
-       (decode-universal-time (round utime) timezone)
+           (decode-universal-time (round utime) timezone)
      (declare (ignore dst))
      (let ((month-name (aref +month-names+ (1- mo)))
            (week-day-name (aref +week-days+ dw)))
@@ -409,8 +409,8 @@ Examples:
        (when (or (> precision 3) (< precision 0))
          (format os "~2,'0d:~2,'0d" ho mi)
          (when (or (> precision 5) (< precision -2)) (format os ":~2,'0d" se)))
-       (when (= precision 7)
-         (format os " ~3@d" tz)))))
+       (when (and (>= precision 7) timezone)
+         (format os " ~:[+~;-~]~2,'0d" (< 0 tz) (abs tz))))))
 
 (defmethod parse-input((spec (eql 'read)) (value string) &key (multiplep nil)
                        (type 't) (package *package*))
@@ -506,7 +506,7 @@ FMT is a keyword symbol specifying which output format is used as follows
 :ISO       - output as per ISO 8602"
   (declare (number utime) (symbol fmt))
   (multiple-value-bind (se mi ho da mo ye dw dst tz)
-      (decode-universal-time (round utime) timezone)
+          (decode-universal-time (round utime) timezone)
     (declare (fixnum se mi ho da mo ye dw tz) (ignore dst))
     (let ((month-name (aref +month-names+ (1- mo)))
           (week-day-name (aref +week-days+ dw)))
@@ -515,15 +515,15 @@ FMT is a keyword symbol specifying which output format is used as follows
          (format
           out
           "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
-          ye mo da ho mi se timezone (< 0 0) tz))
+          ye mo da ho mi se timezone (< 0 tz) (abs tz)))
         (:short
          (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d"
                  ye mo da ho mi))
         (:rfc2822
          (format
           out
-          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
-          week-day-name da month-name ye ho mi se timezone (< tz 0) tz))
+          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~@d~]"
+          week-day-name da month-name ye ho mi se timezone (< 0 tz) (abs tz)))
         (:http
          (format out "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d GMT"
                  week-day-name da month-name ye ho mi se))
@@ -536,7 +536,7 @@ FMT is a keyword symbol specifying which output format is used as follows
         (:time-only
          (format out "~2,'0d:~2,'0d:~2,'0d" ho mi se))))))
 
-(defmethod format-output((spec (eql 'date)) output &key (fmt :iso) (zone nil)
+(defmethod format-output((spec (eql 'date)) output &key (fmt :iso) (zone 0)
                          (if-nil nil)
                          &allow-other-keys)
   (if output
