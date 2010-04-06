@@ -223,7 +223,7 @@ separating each string with a SEPARATOR character or string"
       (when (and min (< v min))
         (invalid-format-error
          spec input "The number must be more than or equal to ~D" min))
-      (if rational-as-float-p (coerce v 'float) v))))
+      (if (and rational-as-float-p (not (integerp v))) (coerce v 'float) v))))
 
 (defmethod parse-input((spec (eql 'string)) s
                        &key
@@ -410,7 +410,7 @@ Examples:
          (format os "~2,'0d:~2,'0d" ho mi)
          (when (or (> precision 5) (< precision -2)) (format os ":~2,'0d" se)))
        (when  timezone
-         (format os " ~:[+~;-~]~2,'0d" (< 0 tz) (abs tz))))))
+         (format os "~:[ ~:[+~;-~]~2,'0d~;Z~]" (zerop tz) (< 0 tz) (abs tz))))))
 
 (defmethod parse-input((spec (eql 'read)) (value string) &key (multiplep nil)
                        (type 't) (package *package*))
@@ -517,13 +517,13 @@ FMT is a keyword symbol specifying which output format is used as follows
           "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
           ye mo da ho mi se timezone (< 0 tz) (abs tz)))
         (:short
-         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
-                 ye mo da ho mi timezone (< 0 tz) (abs tz)))
+         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d~:[~:[~; ~:[+~;-~]~2,'0d~]~;Z~]"
+                 ye mo da ho mi timezone (zerop tz) (< 0 tz) (abs tz)))
         (:rfc2822
          (format
           out
-          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
-          week-day-name da month-name ye ho mi se timezone (< 0 tz) (abs tz)))
+          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~:[~; ~:[+~;-~]~2,'0d~]~;Z~]"
+          week-day-name da month-name ye ho mi se timezone (zerop tz) (< 0 tz) (abs tz)))
         (:http
          (format out "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d GMT"
                  week-day-name da month-name ye ho mi se))
