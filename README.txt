@@ -6,10 +6,10 @@ DATA FORMAT VALIDATION
 
 :Author:       Dr John A.R. Williams
 :Contact:      J.A.R.Williams@jarw.org.uk
-:date:         2009/09/20
+:date:         2010/04/08
 :status:       Initial Public Release
-:version:      0.2
-:copyright:    © 2009 J.A.R. Williams
+:version:      0.1.5
+:copyright:    © 2010 J.A.R. Williams
 :abstract:     DATA-FORMAT-VALIDATION is a library for Common Lisp providing a
      consistent regular interface for converting (and validating) external data
      (in the form of strings usually) into internal data types and
@@ -117,7 +117,7 @@ formatter function **date** `os utime &optional colon-p at-p precision 6 timezon
           (sortable) format rather than dd-mm-yyy
   - precision: what precision to print it to. 6 is to the second,
              7 includes timezone, a negative number counts backward.
-  - timezone: an integer (default nil).
+  - timezone: an integer (default `*timezone*`).
             If nil no timezone used and time is in current timezone
             adjusted for daylight saving time.
         
@@ -155,25 +155,38 @@ convert an empty or all whitespace string to nil corresponding to a
 null input, otherwise an empty string is considered invalid input.
 Methods specialisations are provided for the following types:
 
-**nil** `&key`
-  Return string unchanged.
 
 **boolean** `&key`
   Converts typical user boolean values (e.g. "TRUE", "Y",  "0") into a
   boolean type. On output "TRUE" and "FALSE" are used.
 
-**integer** `&key min max nil-allowed radix format`
-  Converts to an integer between `min` and `max` (inclusive, and if
-  specified). `radix` specified the base (in the usual way). `format`
-  specifies the format control string to be used for output.
+**bit-vector** `&key`
+  Converts between a string of 0 and 1s and a bit vector.
 
-**number** `&key min max nil-allowed format radix`
-  Converts to a general number between `min` and `max` (inclusive, and if
-  specified). `radix`
-  specified the base (in the usual way). `format` specifies the format
-  control string to be used for output. The `parse-number` library of
-  Matthew Danish is used to do the conversion.
+**date** `&key nil-allowed zone fmt` Uses the `parse-time` library of
+  Jim Healy and Daniel Barlow to convert to internal universal time in
+  specified timezone `zone` which to defaults to special variable
+  `*timezone*` for output but to `nil` for parsing input. If `zone` is
+  nil the time will be in the current timezone allowing for local
+  daylight savings time - otherwise it is in the specified timezone,
+  which will be written out.
 
+  `fmt` is a keyword specifying the output format to be used as
+  follows.
+
+   A stand alone formatter of the same name is also provided.
+  
+  :RFC2822   - output as per RFC2822 for internet messages
+  :SHORT     - output in a shorter format (same as :ISO)
+  :TIME-ONLY - outputs time as hh:mm:ss
+  :DATE-ONLY - outputs date as dd-mm-yyyy
+  :ISO       - output as per ISO 8602 (default)
+
+**dimensional-parameter** `&key padchar decimal-places1`
+  Converts between a string which includes units and normal scaling
+  suffixes and a cons of the numerical value and the base units
+  string. `padchar` and `decimal-places` are as per **eng**.
+ 
 **eng** `&key units padchar decimal-places`
   Parse a number suffix
   with units. The standard engineering prefixes are assumed for the
@@ -183,76 +196,10 @@ Methods specialisations are provided for the following types:
   will be scaled and the appropriate engineering prefix used.
   A general purpose formatter of the same name is also provided.
 
-**roman**
-  Convert between roman numerals (up to 4000) and an integer
-
-**string** `&key strip-return nil-allowed min-word-count max-word-count min-length max-length`
-  Validates that the string is between `min-length` and `max-length`
-  characters long (inclusive, and if specified) and the word count is
-  between `min-word-count` and `max-word-count`. 
-  Whitespace is trimmed from the returned string, and if
-  `strip-return` is specified the RETURN characters are stripped from
-  the string (useful when handling input from http forms).
-
-**symbol** `&key nil-allowed package convert`
-  Returns a symbol from the string interned into `package` (default
-  is the keyword package). `conversion` is a function applied to the
-  string before it is interned (default identity) which may for
-  example be used to change case or map special characters.
-
-**pathname** `&key must-exist wild-allowed nil-allowed`
-  Convert input to a pathname. If `wild-allowed` is true then the
-  pathname is allowed to be wild, otherwise if `must-exist` is true
-  then the pathname must correspond to an existing file (checked using
-  probe-file.  
-
-**pathnames** `&key must-exist wild-allowed nil-allowed`
-  Return a list of pathnames delimited by ':', each checked as for **pathname**
-
 **filename** `&key if-invalid replacement`
   Return a safe filename from a string path value.
   May return an error or replace invalid characters with the specified
   replacement letter (default '-');
-
-**list** `&key separator type min-length max-length`
-  Return a list of objects delimited by the given `separator`
-  string. Each member is recursively checked the nested type
-  (another type specification). If specified `min-length` and
-  `max-length` specify the required length bounds. The type
-  specification may be a list of type specifications applied to each
-  element in turn or a single type specification applied to all
-  elements (note there is an ambiguity if you specify a list of one
-  symbol - in this it is taken as a conversion for the first element only).
-
-**member** `&key type set test  key`
-  Recursively uses `type` to convert string to internal object which
-  is then checked for membership of the list `set` using `key` and
-  `test`(default is equal allowing for string tests).
-
-**date** `&key nil-allowed zone fmt`
-  Uses the `parse-time` library of Jim Healy and Daniel
-  Barlow to convert to internal universal time in specified zone.
-  `fmt` is a keyword specifying the output format to be used as
-  follows. A stand alone formatter of the same name is also provided.
-  
-  :RFC2822   - output as per RFC2822 for internet messages
-  :SHORT     - output in a shorter format (same as :ISO)
-  :TIME-ONLY - outputs time as hh:mm:ss
-  :DATE-ONLY - outputs date as dd-mm-yyyy
-  :ISO       - output as per ISO 8602 (default)
-
-**read** `&key multiplep type package`
-  Uses the lisp reader with the current package set to
-  `package`. `type` is a Common Lisp type against which the read
-  object(s) is checked. If `multiplep` is true then read will be
-  continually called until all characters are used up and the results
-  are returned as a list. On output, if `multiplep` is true list of
-  objects are separated by a space and written readably. 
-
-**time-period** `&key`
-  A time period in hours, minutes and (optionally) seconds is
-  converted into an integer number of seconds. ':' is used as the
-  delimiter between fields.
 
 **headers** `&key stream skip-blanks-p field-specifications
   preserve-newlines-p termination-test if-no-specification`
@@ -280,6 +227,75 @@ Methods specialisations are provided for the following types:
 
   `format-output` will write its output to `stream` if it is given,
   otherwise it will return a string containing the output headers.   
+
+**integer** `&key min max nil-allowed radix format`
+  Converts to an integer between `min` and `max` (inclusive, and if
+  specified). `radix` specified the base (in the usual way). `format`
+  specifies the format control string to be used for output.
+
+**list** `&key separator type min-length max-length`
+  Return a list of objects delimited by the given `separator`
+  string. Each member is recursively checked the nested type
+  (another type specification). If specified `min-length` and
+  `max-length` specify the required length bounds. The type
+  specification may be a list of type specifications applied to each
+  element in turn or a single type specification applied to all
+  elements (note there is an ambiguity if you specify a list of one
+  symbol - in this it is taken as a conversion for the first element only).
+
+**member** `&key type set test  key`
+  Recursively uses `type` to convert string to internal object which
+  is then checked for membership of the list `set` using `key` and
+  `test`(default is equal allowing for string tests).
+
+**nil** `&key`
+  Return string unchanged.
+
+**number** `&key min max nil-allowed format radix`
+  Converts to a general number between `min` and `max` (inclusive, and if
+  specified). `radix`
+  specified the base (in the usual way). `format` specifies the format
+  control string to be used for output. The `parse-number` library of
+  Matthew Danish is used to do the conversion.
+
+**pathname** `&key must-exist wild-allowed nil-allowed`
+  Convert input to a pathname. If `wild-allowed` is true then the
+  pathname is allowed to be wild, otherwise if `must-exist` is true
+  then the pathname must correspond to an existing file (checked using
+  probe-file.  
+
+**pathnames** `&key must-exist wild-allowed nil-allowed`
+  Return a list of pathnames delimited by ':', each checked as for **pathname**
+
+**read** `&key multiplep type package`
+  Uses the lisp reader with the current package set to
+  `package`. `type` is a Common Lisp type against which the read
+  object(s) is checked. If `multiplep` is true then read will be
+  continually called until all characters are used up and the results
+  are returned as a list. On output, if `multiplep` is true list of
+  objects are separated by a space and written readably. 
+
+**roman**
+  Convert between roman numerals (up to 4000) and an integer
+
+**string** `&key strip-return nil-allowed min-word-count max-word-count min-length max-length`
+  Validates that the string is between `min-length` and `max-length`
+  characters long (inclusive, and if specified) and the word count is
+  between `min-word-count` and `max-word-count`. 
+  Whitespace is trimmed from the returned string, and if
+  `strip-return` is specified the RETURN characters are stripped from
+  the string (useful when handling input from http forms).
+
+**symbol** `&key nil-allowed package convert`
+  Returns a symbol from the string interned into `package` (default
+  is the keyword package). `conversion` is a function applied to the
+  string before it is interned (default identity) which may for
+  example be used to change case or map special characters.
+
+**time-period** `&key`
+  A time period in hours, minutes and (optionally) seconds is
+  converted into an integer number of seconds. ':' is used as the
+  delimiter between fields.
 
 Conditions and Restarts
 =======================
