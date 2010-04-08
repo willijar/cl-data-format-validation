@@ -38,7 +38,7 @@
    #:invalid-format-type #:invalid-format-value #:invalid-format-reason
    ;; new use data types -  ang and date are also formatter functions
    #:date #:filename #:eng #:time-period #:pathnames #:separated #:roman
-   #:headers #:dimensional-parameter
+   #:headers #:dimensional-parameter #:*timezone*
    ;; functions for doing aggregates of user data and condition
    #:parse-options #:parse-arguments #:ignore-extra-arguments #:use-default
    ;; some other more generally useful helper library functions

@@ -367,8 +367,11 @@ Try the ISO format YYYY/MM/DD HH:MM:SS")))))
     (0 "BST" . "GMT") (-2 "MET DST" . "MET"))
   "The string representations of the time zones.")
 
+(defvar *timezone* nil
+  "Default timezone for date handling")
+
 (defun date(os utime &optional colon-p at-p
-            (precision 7) (timezone nil))
+            (precision 7) (timezone *timezone*))
   "Formatter which formats a universal time for output as a date and time
 
 Modifiers:
@@ -487,7 +490,7 @@ value(s) must be of this type"
       ""))
 
 (defun format-time(out  utime
-                   &key (fmt :rfc2822) (timezone nil))
+                   &key (fmt :rfc2822) (timezone *timezone*))
   "Formats a universal time for output.
 
 OUT controls where the result will go.  If OUT is T, then the output
@@ -536,7 +539,7 @@ FMT is a keyword symbol specifying which output format is used as follows
         (:time-only
          (format out "~2,'0d:~2,'0d:~2,'0d" ho mi se))))))
 
-(defmethod format-output((spec (eql 'date)) output &key (fmt :iso) (zone 0)
+(defmethod format-output((spec (eql 'date)) output &key (fmt :iso) (zone *timezone*)
                          (if-nil nil)
                          &allow-other-keys)
   (if output
@@ -951,12 +954,13 @@ keyword arguments to the specific method.")
     (apply #'equivalent (nconc (list (car spec) input reference) (cdr spec))))
   (:method(spec input reference &key (test #'equal)  &allow-other-keys)
     (funcall test input reference))
-  (:method((spec (eql 'number)) input reference &key (tol 1e-3 tolp) &allow-other-keys)
+  (:method((spec (eql 'number)) input reference &key (tol 1e-3) &allow-other-keys)
     (and input
          (or (= input reference)
-             (when tolp
-               (and (/= 0 reference)
-                    (< (abs (/ (- input reference) reference)) tol)))))))
+             (typecase tol
+               (function (funcall tol input reference))
+               (number (and (/= 0 reference)
+                            (<= (abs (/ (- input reference) reference)) tol))))))))
 
 (defmethod format-output((spec (eql 'dimensional-parameter)) value
                         &key (padchar #\space) (decimal-places 2)
