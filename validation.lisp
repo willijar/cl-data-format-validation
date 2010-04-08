@@ -113,7 +113,7 @@ Whitespace which causes a split is elided from the result.  The whole
 string will be split, unless `max' is provided, in which case the
 string will be split into `max' tokens at most, the last one
 containing the whole rest of the given `string', if any."
-  (declare (optimize speed) (type string string) (type (or fixnum null) count)
+  (declare (type string string) (type (or fixnum null) count)
            (type boolean remove-empty-subseqs))
     (nreverse
      (let ((list nil) (start 0) (words 0) end
@@ -410,7 +410,7 @@ Examples:
          (format os "~2,'0d:~2,'0d" ho mi)
          (when (or (> precision 5) (< precision -2)) (format os ":~2,'0d" se)))
        (when  timezone
-         (format os "~:[ ~:[+~;-~]~2,'0d~;Z~]" (zerop tz) (< 0 tz) (abs tz))))))
+         (format os " ~:[+~;-~]~2,'0d"  (< 0 tz) (abs tz))))))
 
 (defmethod parse-input((spec (eql 'read)) (value string) &key (multiplep nil)
                        (type 't) (package *package*))
@@ -517,13 +517,13 @@ FMT is a keyword symbol specifying which output format is used as follows
           "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
           ye mo da ho mi se timezone (< 0 tz) (abs tz)))
         (:short
-         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d~:[~:[~; ~:[+~;-~]~2,'0d~]~;Z~]"
-                 ye mo da ho mi timezone (zerop tz) (< 0 tz) (abs tz)))
+         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
+                 ye mo da ho mi timezone (< 0 tz) (abs tz)))
         (:rfc2822
          (format
           out
-          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~:[~; ~:[+~;-~]~2,'0d~]~;Z~]"
-          week-day-name da month-name ye ho mi se timezone (zerop tz) (< 0 tz) (abs tz)))
+          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
+          week-day-name da month-name ye ho mi se timezone (< 0 tz) (abs tz)))
         (:http
          (format out "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d GMT"
                  week-day-name da month-name ye ho mi se))
@@ -948,7 +948,7 @@ the actual validation method and the rest of the list are passed as
 keyword arguments to the specific method.")
   (:method((spec list) input reference &rest rest)
     (declare (ignore rest))
-    (apply #'equivalent (nconc (list (car spec) input) (cdr spec))))
+    (apply #'equivalent (nconc (list (car spec) input reference) (cdr spec))))
   (:method(spec input reference &key (test #'equal)  &allow-other-keys)
     (funcall test input reference))
   (:method((spec (eql 'number)) input reference &key (tol 1e-3 tolp) &allow-other-keys)
@@ -972,11 +972,15 @@ only the suffix is output. If nil no units or suffix is output"
                        &key &allow-other-keys)
   ;; we assume all of suffix non numerical characters make up units
   ;; and value before that is a number.
+  (setq value (string-trim #(#\space #\tab) value))
   (let* ((p (1+ (position-if #'digit-char-p value :from-end t)))
          (num (float (parse-number (subseq value 0 p))))
          (p (position-if-not #'white-space-p value :start p))
          (scale (position (char value p) +engineering-units+))
          (units (subseq value (if scale (1+ p) p))))
+    (when (zerop (length units))
+      (setf scale nil)
+      (setf units (subseq value p)))
     (when scale (setf num (* num (expt  10 (* 3 (- 8 scale))))))
     (cons num units)))
 
