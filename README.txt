@@ -1,5 +1,5 @@
 .. -*-RST-*-
-.. |VERSION| replace:: 0.1.5
+.. |VERSION| replace:: 0.1.6
 
 ========================
 DATA FORMAT VALIDATION
@@ -9,7 +9,7 @@ DATA FORMAT VALIDATION
 :Contact:      J.A.R.Williams@jarw.org.uk
 :date:         2010/04/08
 :status:       Initial Public Release
-:version:      0.1.5
+:version:      |VERSION|
 :copyright:    © 2010 J.A.R. Williams
 :abstract:     DATA-FORMAT-VALIDATION is a library for Common Lisp providing a
      consistent regular interface for converting (and validating) external data

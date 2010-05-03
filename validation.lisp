@@ -965,6 +965,9 @@ keyword arguments to the specific method.")
 (defmethod format-output((spec (eql 'dimensional-parameter)) value
                         &key (padchar #\space) (decimal-places 2)
                          &allow-other-keys)
+  "Output in engineering style with units. If units is a string then
+the output will contain that unit and the appropriate suffix. If t
+only the suffix is output. If nil no units or suffix is output"
   (with-output-to-string(os)
     (eng os (car value)  (cdr value) nil decimal-places padchar)
     (write-string (cdr value) os)))
