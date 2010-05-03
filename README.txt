@@ -1,4 +1,5 @@
 .. -*-RST-*-
+.. |VERSION| replace:: 0.1.5
 
 ========================
 DATA FORMAT VALIDATION
@@ -16,22 +17,26 @@ DATA FORMAT VALIDATION
      for formatting internal data back into external presentable
      strings, all according to a conversion or type specification. 
 
-.. |DFV| replace:: DATA-FORMAT-VALIDATION
+.. meta::
+   :keywords: Common Lisp
 
+.. contents:: Table of Contents
+
+.. |DFV| replace:: DATA-FORMAT-VALIDATION
 .. |JARW| replace:: John A.R. Williams
 
 Download and Installation
 =========================
 
-|DFV| together with this documentation can be downloaded from
+|DFV| together with this documentation can be downloaded from the git
+repository at
+`<git://github.com/willijar/cl-data-format-validation.git>` or from
 <http://www.jarw.org.uk/lisp/cl-data-format-validation.tar.gz>. The
-current release version is 0.2
+current release version is |VERSION|.
 
 |DFV| comes with a system definition for 
 `ASDF <http://www.cliki.net/asdf>`_ and is compiled and loaded in the usual
-way. It depends upon `CL-PPCRE <http://weitz.de/cl-ppcre/>`_. A git
-repository is available at
-<http://www.jarw.org.uk/lisp/cl-data-format-validation.git>.
+way. It depends upon `CL-PPCRE <http://weitz.de/cl-ppcre/>`_.
 
 |DFV|  is made available under the terms of the GPL v3 license - see
 the file ``LICENSE.txt`` for details.
@@ -72,6 +77,11 @@ generic function **format-output** `specification value &key &allow-other-keys =
 
     (format-output '(date :fmt :rfc2822) (get-universal-time))
     >"Mon, 10 Jul 2006 15:43:45 +00"
+
+generic function **equivalent** `specification input reference &key &allow-other-keys => boolean`
+  Return true if the input and reference values can be consider
+  equivalent according to the specification. The default is to test
+  using **equal**.
 
 generic function **parse-options** `spec options-list &optional allow-other-options => options`
   Parse an option list (alist of names and strings to be parsed)
@@ -182,10 +192,13 @@ Methods specialisations are provided for the following types:
   :DATE-ONLY - outputs date as dd-mm-yyyy
   :ISO       - output as per ISO 8602 (default)
 
-**dimensional-parameter** `&key padchar decimal-places1`
+**dimensional-parameter** `&key padchar decimal-places tol`
   Converts between a string which includes units and normal scaling
   suffixes and a cons of the numerical value and the base units
   string. `padchar` and `decimal-places` are as per **eng**.
+
+  A dimensional comparator is equivalent if the numerical values and
+  the units are equivalent.
  
 **eng** `&key units padchar decimal-places`
   Parse a number suffix
@@ -251,12 +264,16 @@ Methods specialisations are provided for the following types:
 **nil** `&key`
   Return string unchanged.
 
-**number** `&key min max nil-allowed format radix`
+**number** `&key min max nil-allowed format radix tol`
   Converts to a general number between `min` and `max` (inclusive, and if
   specified). `radix`
   specified the base (in the usual way). `format` specifies the format
   control string to be used for output. The `parse-number` library of
   Matthew Danish is used to do the conversion.
+
+  `tol` is the tolerance to be used for **equivalence** testing - it
+  can either be a multiplier applied to the reference value or a
+  function of two arguments - the input and the reference value.
 
 **pathname** `&key must-exist wild-allowed nil-allowed`
   Convert input to a pathname. If `wild-allowed` is true then the
