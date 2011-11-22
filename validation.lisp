@@ -441,7 +441,9 @@ value(s) must be of this type"
             (handler-case
                 (loop (push (do-read) results))
               (end-of-file() (nreverse results))))
-          (do-read))))))
+          (handler-case
+              (do-read)
+            (end-of-file() nil)))))))
 
 (defmethod parse-input((spec (eql 'separated)) (value sequence)
                        &key (separator ",") type)
