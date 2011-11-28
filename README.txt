@@ -10,7 +10,7 @@ DATA FORMAT VALIDATION
 :date:         2010/04/08
 :status:       Initial Public Release
 :version:      |VERSION|
-:copyright:    © 2010 J.A.R. Williams
+:copyright:    © 2011 J.A.R. Williams
 :abstract:     DATA-FORMAT-VALIDATION is a library for Common Lisp providing a
      consistent regular interface for converting (and validating) external data
      (in the form of strings usually) into internal data types and
