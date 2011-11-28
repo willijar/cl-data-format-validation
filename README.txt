@@ -1,4 +1,5 @@
 .. -*-RST-*-
+.. |VERSION| replace:: 0.1.6
 
 ========================
 DATA FORMAT VALIDATION
@@ -8,7 +9,7 @@ DATA FORMAT VALIDATION
 :Contact:      J.A.R.Williams@jarw.org.uk
 :date:         2010/04/08
 :status:       Initial Public Release
-:version:      0.1.5
+:version:      |VERSION|
 :copyright:    © 2010 J.A.R. Williams
 :abstract:     DATA-FORMAT-VALIDATION is a library for Common Lisp providing a
      consistent regular interface for converting (and validating) external data
@@ -16,22 +17,26 @@ DATA FORMAT VALIDATION
      for formatting internal data back into external presentable
      strings, all according to a conversion or type specification. 
 
-.. |DFV| replace:: DATA-FORMAT-VALIDATION
+.. meta::
+   :keywords: Common Lisp
 
+.. contents:: Table of Contents
+
+.. |DFV| replace:: DATA-FORMAT-VALIDATION
 .. |JARW| replace:: John A.R. Williams
 
 Download and Installation
 =========================
 
-|DFV| together with this documentation can be downloaded from
+|DFV| together with this documentation can be downloaded from the git
+repository at
+`<git://github.com/willijar/cl-data-format-validation.git>` or from
 <http://www.jarw.org.uk/lisp/cl-data-format-validation.tar.gz>. The
-current release version is 0.2
+current release version is |VERSION|.
 
 |DFV| comes with a system definition for 
 `ASDF <http://www.cliki.net/asdf>`_ and is compiled and loaded in the usual
-way. It depends upon `CL-PPCRE <http://weitz.de/cl-ppcre/>`_. A git
-repository is available at
-<http://www.jarw.org.uk/lisp/cl-data-format-validation.git>.
+way. It depends upon `CL-PPCRE <http://weitz.de/cl-ppcre/>`_.
 
 |DFV|  is made available under the terms of the GPL v3 license - see
 the file ``LICENSE.txt`` for details.
