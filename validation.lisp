@@ -559,16 +559,17 @@ FMT is a keyword symbol specifying which output format is used as follows
                          &allow-other-keys)
   (if format (format nil format output) (call-next-method)))
 
-(defmethod format-output((spec (eql 'read)) output &key (multiplep nil))
+(defmethod format-output((spec (eql 'read)) output &key (multiplep nil) (package *package*))
   "Parse input using read. If multiple is true will read until
 finsihed, returning a list of values."
+ (let ((*package* (find-package package)))
   (with-output-to-string(os)
     (if (and multiplep (listp output))
         (dolist(item output)
           (unless (eql item (car output))
             (write-char #\space os))
           (write item :stream os :readably t))
-        (write output :stream os :readably t))))
+        (write output :stream os :readably t)))))
 
 (defmethod format-output((spec (eql 'list)) output &key type (separator ", "))
   (join-strings
