@@ -174,9 +174,9 @@ separating each string with a SEPARATOR character or string"
                        &key &allow-other-keys)
   (setf input (string-left-trim " " (string-right-trim " " input)))
   (cond
-    ((member input '("YES" "Y" "TRUE" "T" "1") :test #'equalp)
+    ((member input '("YES" "Y" "TRUE" "T" "ON" "1") :test #'equalp)
      t)
-    ((member input '("NO" "N" "FALSE" "NIL" "F" "0") :test #'equalp)
+    ((member input '("NO" "N" "FALSE" "NIL" "F" "OFF" "0") :test #'equalp)
      nil)
     (t (invalid-format-error
         spec input "Boolean Value must be TRUE or FALSE"))))
