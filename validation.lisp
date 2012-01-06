@@ -994,3 +994,16 @@ only the suffix is output. If nil no units or suffix is output"
 (defmethod equivalent((spec (eql 'dimensional-parameter)) input reference &rest rest)
   (and (equal (cdr reference) (cdr input))
        (apply #'equivalent `(number ,(car input) ,(car reference) ,@rest))))
+
+(defmethod parse-input((spec (eql 'percentage)) (value string)
+                        &key (min 0) (max 100) nil-allowed &allow-other-keys)
+  (parse-input 'number value :min min :max max :nil-allowed nil-allowed))
+
+(defmethod format-output((spec (eql 'percentage)) num
+                         &key (places 0) (%-p t))
+  "Return a percentage value formatted for user output (default 0 places)"
+  (if num
+      (if (= places 0)
+          (format nil "~D~@[%~]" (round num) %-p)
+          (format nil (format nil "~~,~DF~@[%~]" places %-p) num))
+      (when %-p "%")))
