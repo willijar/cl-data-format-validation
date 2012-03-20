@@ -536,6 +536,10 @@ FMT is a keyword symbol specifying which output format is used as follows
          (format out
                  "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d"
                  ye mo da ho mi se))
+        (:nosec
+         (format out
+                 "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d"
+                 ye mo da ho mi))
         (:date-only
          (format out "~2,'0d-~a-~4d" da month-name ye))
         (:time-only
@@ -1000,10 +1004,10 @@ only the suffix is output. If nil no units or suffix is output"
   (parse-input 'number value :min min :max max :nil-allowed nil-allowed))
 
 (defmethod format-output((spec (eql 'percentage)) num
-                         &key (places 0) (%-p t))
+                         &key (places 0) (%-p t) (mult 1))
   "Return a percentage value formatted for user output (default 0 places)"
   (if num
       (if (= places 0)
-          (format nil "~D~@[%~]" (round num) %-p)
-          (format nil (format nil "~~,~DF~@[%~]" places %-p) num))
+          (format nil "~D~@[%~]" (round (* num mult)) %-p)
+          (format nil (format nil "~~,~DF~@[%~]" places %-p) (* num mult)))
       (when %-p "%")))
