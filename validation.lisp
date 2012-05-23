@@ -395,6 +395,7 @@ nil
 Examples:
 
  (format nil \"~/date/\" (get-universal-time)) => \"19-03-2009 08:30\""
+  (if (numberp utime)
    (multiple-value-bind (se mi ho da mo ye dw dst tz)
            (decode-universal-time (round utime) timezone)
      (declare (ignore dst))
@@ -413,7 +414,8 @@ Examples:
          (format os "~2,'0d:~2,'0d" ho mi)
          (when (or (> precision 5) (< precision -2)) (format os ":~2,'0d" se)))
        (when  timezone
-         (format os " ~:[+~;-~]~2,'0d"  (< 0 tz) (abs tz))))))
+         (format os " ~:[+~;-~]~2,'0d"  (< 0 tz) (abs tz)))))
+   (write-to-string utime :escape nil :readably nil)))
 
 (defmethod parse-input((spec (eql 'read)) (value string) &key (multiplep nil)
                        (type 't) (package *package*))
