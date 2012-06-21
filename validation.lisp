@@ -973,13 +973,19 @@ keyword arguments to the specific method.")
 
 (defmethod format-output((spec (eql 'dimensional-parameter)) value
                         &key (padchar #\space) (decimal-places 2)
+                         nil-allowed
                          &allow-other-keys)
   "Output in engineering style with units. If units is a string then
 the output will contain that unit and the appropriate suffix. If t
 only the suffix is output. If nil no units or suffix is output"
-  (with-output-to-string(os)
-    (eng os (car value)  (cdr value) nil decimal-places padchar)
-    (write-string (cdr value) os)))
+  (cond
+    (value
+      (with-output-to-string(os)
+        (eng os (car value)  (cdr value) nil decimal-places padchar)
+        (write-string (cdr value) os)))
+    (nil-allowed nil)
+    (t (invalid-format-error spec value "Value must include a number and units"))))
+
 
 (defmethod parse-input((spec (eql 'dimensional-parameter)) (value string)
                        &key &allow-other-keys)
