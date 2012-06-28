@@ -417,6 +417,18 @@ Examples:
          (format os " ~:[+~;-~]~2,'0d"  (< 0 tz) (abs tz)))))
    (write-to-string utime :escape nil :readably nil)))
 
+(defun duration(os seconds &optional colon-p at-p
+                precision width)
+  (declare (ignore at-p precision width))
+  (multiple-value-bind(days seconds) (floor seconds 86400)
+    (multiple-value-bind(hours seconds) (floor seconds 3600)
+      (multiple-value-bind(minutes seconds) (floor seconds 60)
+        (format os
+                (if colon-p
+                  "~:[~*~;~d days ~]~d hours ~d mins ~d secs"
+                  "~:[~*~;~d ~]~2,'0d:~2,'0d:~2,'0d")
+                (not (zerop days)) days hours minutes seconds)))))
+
 (defmethod parse-input((spec (eql 'read)) (value string) &key (multiplep nil)
                        (type 't) (package *package*))
   "Parse input using read. If multiple is true will read until
