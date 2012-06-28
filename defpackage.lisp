@@ -31,6 +31,7 @@
 (defpackage :data-format-validation
   (:documentation "Exports API for validation and conversion of user
   data to internal types and back again.")
+  (:nicknames #:dfv)
   (:use :cl :cl-ppcre)
   (:export
    ;; main generic interface and condition
