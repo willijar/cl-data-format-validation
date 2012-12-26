@@ -397,7 +397,9 @@ Examples:
  (format nil \"~/date/\" (get-universal-time)) => \"19-03-2009 08:30\""
   (if (numberp utime)
    (multiple-value-bind (se mi ho da mo ye dw dst tz)
-           (decode-universal-time (round utime) timezone)
+       (if (null timezone)
+           (decode-universal-time (round utime))
+           (decode-universal-time (round utime) timezone))
      (declare (ignore dst))
      (let ((month-name (aref +month-names+ (1- mo)))
            (week-day-name (aref +week-days+ dw)))
@@ -525,7 +527,9 @@ FMT is a keyword symbol specifying which output format is used as follows
 :ISO       - output as per ISO 8602"
   (declare (number utime) (symbol fmt))
   (multiple-value-bind (se mi ho da mo ye dw dst tz)
-          (decode-universal-time (round utime) timezone)
+      (if (null timezone)
+          (decode-universal-time (round utime))
+          (decode-universal-time (round utime) timezone))
     (declare (fixnum se mi ho da mo ye dw tz) (ignore dst))
     (let ((month-name (aref +month-names+ (1- mo)))
           (week-day-name (aref +week-days+ dw)))
