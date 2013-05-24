@@ -208,7 +208,7 @@ separating each string with a SEPARATOR character or string"
 
 (defmethod parse-input((spec (eql 'number)) (input string)
                        &key min max nil-allowed format (radix 10)
-                       (rational-as-float-p nil))
+                       (rational-as-float-p nil) (coerce-to nil))
   "Real, integer or rational numbers"
   (declare (ignore format))
   (unless (and nil-allowed (is-nil-string input))
@@ -223,7 +223,11 @@ separating each string with a SEPARATOR character or string"
       (when (and min (< v min))
         (invalid-format-error
          spec input "The number must be more than or equal to ~D" min))
-      (if (and rational-as-float-p (not (integerp v))) (coerce v 'float) v))))
+      (if coerce-to
+          (coerce v coerce-to)
+          (if (and rational-as-float-p (not (integerp v)))
+              (coerce v 'float)
+              v)))))
 
 (defmethod parse-input((spec (eql 'string)) s
                        &key
@@ -883,7 +887,7 @@ only the suffix is output. If nil no units or suffix is output"
   ;; we assume all of suffix non numerical characters make up units
   ;; and value before that is a number.
   (let* ((p (1+ (position-if #'digit-char-p value :from-end t)))
-         (num (float (parse-number (subseq value 0 p))))
+         (num  (parse-number (subseq value 0 p)))
          (suffix (subseq value p)))
     (flet ((scaled-num(c)
              (let ((p (position c +engineering-units+)))
