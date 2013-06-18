@@ -465,6 +465,13 @@ value(s) must be of this type"
               (do-read)
             (end-of-file() nil)))))))
 
+(defmethod parse-input((spec (eql 'eval)) (value string) &key (type 't) (package *package*))
+  (let ((v (eval (parse-input 'read value :package package))))
+    (unless (typep v type)
+      (invalid-format-error
+       spec value "evaluation of ~S is not of expected type ~S" v type))
+    v))
+
 (defmethod parse-input((spec (eql 'separated)) (value sequence)
                        &key (separator ",") type)
   (let ((results nil))
@@ -849,7 +856,7 @@ Examples:
   (if (numberp arg)
       (let* (
             ;; note use u instead of \mu for 1e-6 so utf-8 not needed
-             (order (if (zerop arg) 0 (floor (log arg 10) 3)))
+             (order (if (zerop arg) 0 (floor (log (abs arg) 10) 3)))
              (scale (* 3 order))
              (radix-format
               (if (or (zerop d) (integerp arg))
@@ -859,7 +866,7 @@ Examples:
              (radix (/ arg (expt 10 scale))))
         (when (zerop d) (setf radix (round radix)))
         (if (and colon-p (< -1 (- 8 order) (length +engineering-units+)))
-            (format os "~@? ~:[~C~;~]"
+            (format os "~@?~:[~C~;~]"
                     radix-format
                     radix
                     (zerop scale)
