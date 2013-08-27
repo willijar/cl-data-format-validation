@@ -73,7 +73,7 @@ list are passed as keyword arguments to the specific method e.g.
 
    (parse-input '(integer :min 0) input)
 
-will return the integer value from strin if it is >0, or signal and
+will return the integer value from string if it is >0, or signal and
 invalid-format condition if not.
 
    (parse-input '(member :type integer :set (1 5 7)) input)
@@ -822,7 +822,7 @@ If allow-spaces is true, last element can contain spaces"
               a))))
      spec)))
 
-(defparameter +engineering-units+ "YZEPTGMk munfazy")
+(defparameter +engineering-units+ "YZEPTGMk munpfazy")
 (defun eng(os arg &optional colon-p at-p
                  (d 2) (padchar #\space) (exponentchar #\E))
   "Formatter which outputs its numerical argument `arg` in engineering format
