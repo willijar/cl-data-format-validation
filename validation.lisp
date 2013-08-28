@@ -901,22 +901,23 @@ only the suffix is output. If nil no units or suffix is output"
                (unless p
                     (invalid-format-error
                      spec value "Invalid engineering unit"))
-               (* num (expt  10 (* 3 (- 8 p)))))))
-
-    (cond
-      ((and
-        (stringp units)
-        (let ((p (search units suffix)))
-          (unless p (invalid-format-error spec value "Invalid units"))
-          (when (> p 0)
-            (let ((c (char suffix (1- p))))
-              (unless (white-space-p c)
-                (scaled-num c)))))))
-      ((and
-        units
-        (let ((p (position-if-not #'white-space-p suffix)))
-          (when p (scaled-num (char suffix p))))))
-      (num)))))
+               (* num (expt 10 (* 3 (- 8 p)))))))
+      (cond
+        ((and
+          (stringp units)
+          (let ((p (search units suffix)))
+            (unless p (invalid-format-error spec value "Invalid units"))
+            (if (> p 0)
+                (let ((c (char suffix (1- p))))
+                  (if (white-space-p c)
+                      num
+                      (scaled-num c)))
+                num))))
+        ((and
+          units
+          (let ((p (position-if-not #'white-space-p suffix)))
+            (when p (scaled-num (char suffix p))))))
+        (num)))))
 
 (defparameter +roman-numeral-map+
   '(("M"  . 1000) ("CM" . 900) ("D"  . 500) ("CD" . 400)
