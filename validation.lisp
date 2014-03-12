@@ -839,7 +839,7 @@ Arguments:
 - `os`: an output stream designator
 - `arg`: a number
 - `colon-p`: a generalised boolean (default false)
-- `at-p`: a generalised boolean (default false) - ignored
+- `at-p`: a generalised boolean (default false) - if set right align field
 - `d`: an integer (default 2)
 - `padchar`: a character (default `space`)
 - `exponentchar`: a character (default `e`))
@@ -852,18 +852,17 @@ Examples:
 
 `(format nil \"~/eng/\" 35000) => \"35.00e+3\"`
 "
-  (declare (ignore at-p))
   (if (numberp arg)
       (let* (
             ;; note use u instead of \mu for 1e-6 so utf-8 not needed
              (order (if (zerop arg) 0 (floor (log (abs arg) 10) 3)))
              (scale (* 3 order))
+             (radix (/ arg (expt 10 scale)))
              (radix-format
               (if (or (zerop d) (integerp arg))
-                  (format nil "~~,'~CD" padchar)
-                  (format nil "~~,~@[~D~],,,'~CF"
-                           d  padchar)))
-             (radix (/ arg (expt 10 scale))))
+                  (format nil "~~~:[~;3~],'~CD"  at-p padchar)
+                  (format nil "~~~:[~*~;~D~],~@[~D~],,,'~CF"
+                           at-p (+ 4 d) d padchar))))
         (when (zerop d) (setf radix (round radix)))
         (if (and colon-p (< -1 (- 8 order) (length +engineering-units+)))
             (format os "~@?~:[~C~;~]"
