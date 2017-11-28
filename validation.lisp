@@ -541,23 +541,25 @@ FMT is a keyword symbol specifying which output format is used as follows
       (if (null timezone)
           (decode-universal-time (round utime))
           (decode-universal-time (round utime) timezone))
-    (declare (fixnum se mi ho da mo ye dw tz) (ignore dst))
+    (declare (fixnum se mi ho da mo ye dw) (rational tz) (ignore dst))
     (let ((month-name (aref +month-names+ (1- mo)))
-          (week-day-name (aref +week-days+ dw)))
+          (week-day-name (aref +week-days+ dw))
+          (tz-ho (truncate (abs tz)))
+          (tz-mi (* (rem (abs tz) 1) 60)))
       (ecase fmt
         (:iso
          (format
           out
-          "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
-          ye mo da ho mi se timezone (< 0 tz) (abs tz)))
+          "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~2,'0d~]"
+          ye mo da ho mi se timezone (< 0 tz) tz-ho tz-mi))
         (:short
-         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
-                 ye mo da ho mi timezone (< 0 tz) (abs tz)))
+         (format out "~4d-~2,'0d-~2,'0d ~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~2,'0d~]"
+                 ye mo da ho mi timezone (< 0 tz) tz-ho tz-mi))
         (:rfc2822
          (format
           out
-          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~]"
-          week-day-name da month-name ye ho mi se timezone (< 0 tz) (abs tz)))
+          "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d~:[~; ~:[+~;-~]~2,'0d~2,'0d~]"
+          week-day-name da month-name ye ho mi se timezone (< 0 tz) tz-ho tz-mi))
         (:http
          (format out "~A, ~2,'0d ~a ~4d ~2,'0d:~2,'0d:~2,'0d GMT"
                  week-day-name da month-name ye ho mi se))
